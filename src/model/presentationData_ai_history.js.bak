@@ -1,0 +1,137 @@
+// AI-generated presentation: AI发展简史 (4 slides)
+export const presentationCSS = `
+  .slide { font-family: 'Segoe UI', system-ui, sans-serif; padding: 60px; box-sizing: border-box; }
+  .slide h1 { margin: 0 0 20px; font-weight: 700; }
+  .slide h2 { margin: 0 0 16px; font-weight: 600; }
+  .slide p { margin: 8px 0; line-height: 1.6; }
+  .slide .tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; margin: 4px; }
+  .slide .timeline-item { display: flex; gap: 20px; margin: 16px 0; align-items: flex-start; }
+  .slide .timeline-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .slide .card { border-radius: 12px; padding: 24px; margin: 12px 0; }
+  .slide .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .slide .icon { font-size: 36px; margin-bottom: 12px; }
+`;
+
+export const presentationSlides = [
+  {
+    id: 'ai-1',
+    slideStyle: 'background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff;',
+    innerHTML: `
+      <div class="slide" style="display:flex; flex-direction:column; justify-content:center; height:100%;">
+        <p style="font-size:14px; text-transform:uppercase; letter-spacing:3px; color:#a78bfa; margin-bottom:12px;">Presentation</p>
+        <h1 style="font-size:52px; background: linear-gradient(90deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">AI 发展简史</h1>
+        <p style="font-size:20px; color:#cbd5e1; margin-top:16px;">从图灵测试到大语言模型</p>
+        <div style="margin-top:40px;">
+          <span class="tag" style="background:rgba(167,139,250,0.2); color:#a78bfa;">Machine Learning</span>
+          <span class="tag" style="background:rgba(96,165,250,0.2); color:#60a5fa;">Deep Learning</span>
+          <span class="tag" style="background:rgba(52,211,153,0.2); color:#34d399;">LLM</span>
+        </div>
+        <p style="font-size:13px; color:#64748b; margin-top:auto;">2026 · AI History Overview</p>
+      </div>
+    `
+  },
+  {
+    id: 'ai-2',
+    slideStyle: 'background: #fafbfc; color: #1e293b;',
+    innerHTML: `
+      <div class="slide" style="height:100%; position:relative;">
+        <h2 style="font-size:32px; color:#1e293b;">🕰️ 关键里程碑</h2>
+        <p style="color:#64748b; margin-bottom:24px;">从概念诞生到技术爆发</p>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:#a78bfa;"></div>
+          <div><strong>1950</strong> — 图灵发表《计算机器与智能》，提出图灵测试</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:#60a5fa;"></div>
+          <div><strong>1956</strong> — 达特茅斯会议，"人工智能"概念正式诞生</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:#34d399;"></div>
+          <div><strong>2012</strong> — AlexNet 赢得 ImageNet，深度学习革命开始</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:#f472b6;"></div>
+          <div><strong>2017</strong> — Transformer 架构发布，奠定大模型基础</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:#fbbf24;"></div>
+          <div><strong>2022-2026</strong> — GPT/Claude 系列，AI Agent 时代来临</div>
+        </div>
+        <img src="/images/ai_milestone.png" style="position:absolute;right:30px;top:40px;width:420px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.1);cursor:move;z-index:10;user-select:none;" class="free-img" />
+      </div>
+    `
+  },
+  {
+    id: 'ai-3',
+    slideStyle: 'background: linear-gradient(180deg, #eff6ff, #ffffff); color: #1e293b;',
+    innerHTML: `
+      <div class="slide" style="height:100%;">
+        <h2 style="font-size:32px;">🧠 三大技术浪潮</h2>
+        <div class="grid-2" style="margin-top:24px;">
+          <div class="card" style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);">
+            <div class="icon">📐</div>
+            <h3 style="margin:0 0 8px; color:#7c3aed;">符号主义 (1956-1990)</h3>
+            <p style="font-size:14px; color:#6b7280;">专家系统、知识图谱、逻辑推理。试图用规则描述智能。</p>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);">
+            <div class="icon">📊</div>
+            <h3 style="margin:0 0 8px; color:#2563eb;">统计学习 (1990-2012)</h3>
+            <p style="font-size:14px; color:#6b7280;">SVM、随机森林、贝叶斯网络。数据驱动的模式识别。</p>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);">
+            <div class="icon">🔮</div>
+            <h3 style="margin:0 0 8px; color:#059669;">深度学习 (2012-now)</h3>
+            <p style="font-size:14px; color:#6b7280;">CNN、RNN、Transformer。端到端学习，规模即智能。</p>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);">
+            <div class="icon">🤖</div>
+            <h3 style="margin:0 0 8px; color:#ea580c;">Agent 时代 (2024+)</h3>
+            <p style="font-size:14px; color:#6b7280;">工具调用、自主规划、多模态协作。AI 从回答到行动。</p>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'ai-4',
+    slideStyle: 'background: linear-gradient(135deg, #1e293b, #334155); color: #fff;',
+    innerHTML: `
+      <div class="slide" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; text-align:center; position:relative; overflow:hidden;">
+        <!-- 装饰光圈 -->
+        <div style="position:absolute; top:-80px; right:-80px; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle, rgba(167,139,250,0.15), transparent 70%);"></div>
+        <div style="position:absolute; bottom:-60px; left:-60px; width:250px; height:250px; border-radius:50%; background:radial-gradient(circle, rgba(96,165,250,0.12), transparent 70%);"></div>
+        
+        <p style="font-size:56px; margin-bottom:20px; filter:drop-shadow(0 4px 12px rgba(167,139,250,0.4));">🚀</p>
+        <h2 style="font-size:40px; margin-bottom:12px; background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">未来已来</h2>
+        <p style="font-size:18px; color:#94a3b8; max-width:640px; line-height:1.8; margin-bottom:32px;">AI 正在从工具演变为协作伙伴。下一个十年，人机协作将重新定义创造力的边界。</p>
+        
+        <!-- 三列展望 -->
+        <div style="display:flex; gap:24px; margin-bottom:36px;">
+          <div style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); border-radius:12px; padding:20px 24px; width:180px;">
+            <p style="font-size:28px; margin-bottom:8px;">🧠</p>
+            <h4 style="margin:0 0 6px; font-size:15px; color:#a78bfa;">通用智能</h4>
+            <p style="font-size:12px; color:#94a3b8; margin:0;">AGI 从概念走向现实，推理与创造并重</p>
+          </div>
+          <div style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); border-radius:12px; padding:20px 24px; width:180px;">
+            <p style="font-size:28px; margin-bottom:8px;">🤝</p>
+            <h4 style="margin:0 0 6px; font-size:15px; color:#60a5fa;">人机共生</h4>
+            <p style="font-size:12px; color:#94a3b8; margin:0;">AI 增强人类能力，而非替代人类角色</p>
+          </div>
+          <div style="background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); border-radius:12px; padding:20px 24px; width:180px;">
+            <p style="font-size:28px; margin-bottom:8px;">🌍</p>
+            <h4 style="margin:0 0 6px; font-size:15px; color:#34d399;">具身智能</h4>
+            <p style="font-size:12px; color:#94a3b8; margin:0;">从数字世界走入物理世界，感知与行动统一</p>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-bottom:24px;">
+          <span class="tag" style="background:rgba(167,139,250,0.2); color:#a78bfa;">AGI</span>
+          <span class="tag" style="background:rgba(96,165,250,0.2); color:#60a5fa;">Embodied AI</span>
+          <span class="tag" style="background:rgba(52,211,153,0.2); color:#34d399;">Human-AI Collab</span>
+          <span class="tag" style="background:rgba(251,191,36,0.2); color:#fbbf24;">Multimodal</span>
+        </div>
+        <p style="font-size:14px; color:#475569; margin-top:auto;">Thank you · Q&A</p>
+      </div>
+    `
+  }
+];

@@ -1,9 +1,9 @@
 import { ref, computed } from 'vue'
 import { uid, createBlock, createSlide } from '../model/types.js'
-import { createDavinciSlides } from '../model/sampleData.js'
+import { slides as defaultSlides } from '../model/presentationData.js'
 
 export function useSlides() {
-  const slides = ref(createDavinciSlides().map(s => ({ ...s, id: s.id || uid(), shapes: s.shapes || [] })))
+  const slides = ref(defaultSlides.map((s, i) => ({ id: s.id || uid(), innerHTML: s.innerHTML, shapes: s.shapes || [] })))
   const currentIndex = ref(0)
   const selected = ref(null)
 

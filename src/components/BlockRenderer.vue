@@ -25,6 +25,9 @@
       <div v-for="(card,ci) in block.cards" :key="ci" class="card-item" :style="card.style"
         contenteditable @blur="card.content=$event.target.innerHTML" v-html="card.content"></div>
     </div>
+    <!-- rawHtml -->
+    <div v-else-if="block.type==='rawHtml'" class="raw-html-block"
+      v-html="block.content"></div>
   </div>
 </template>
 

@@ -41,10 +41,10 @@ defineEmits(['addSlide','addBlock','imageUpload','toggleShapes','addShape','dele
 </script>
 
 <style scoped>
-.toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #eee; flex-wrap: wrap; }
-.tb-group { display: flex; gap: 4px; padding-right: 10px; border-right: 1px solid #eee; }
+.toolbar { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #e8e8e8; flex-wrap: wrap; min-height: 60px; }
+.tb-group { display: flex; gap: 8px; padding-right: 16px; border-right: 1px solid #eee; }
 .tb-group:last-child { border-right: none; }
-.toolbar button, .tb-btn { padding: 5px 10px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fafafa; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.toolbar button, .tb-btn { padding: 8px 16px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa; cursor: pointer; font-size: 14px; white-space: nowrap; transition: all .15s; }
 .toolbar button:hover, .tb-btn:hover { background: #eef2ff; border-color: #3b5fe0; }
 .shape-dropdown { position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.1); padding: 4px; z-index: 100; display: flex; flex-direction: column; gap: 2px; }
 .shape-dropdown button { text-align: left; border: none; padding: 6px 12px; }
