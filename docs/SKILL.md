@@ -499,3 +499,115 @@ export const extendedThemes = {
 | nordAurora | 数据/可视化 | Nord+彩色accent |
 | academic | 学术/论文/严肃 | 黑白红经典 |
 | corporate | 商务/汇报/正式 | 蓝绿橙专业 |
+
+
+---
+
+## 十一、布局模板系统（Layout Templates）
+
+> 画布尺寸：960×540px。所有坐标基于此。Agent 生成 slide 时，根据内容类型选择合适的 layout，按对应坐标放置元素。
+
+### 11.1 布局类型速查
+
+| layout | 适用场景 | 结构 |
+|--------|----------|------|
+| `title-center` | 封面/章节页 | 大标题居中 + 副标题 |
+| `default` | 标题+正文 | 顶部标题 + 下方内容区 |
+| `two-cols` | 对比/并列 | 标题 + 左右两栏 |
+| `image-left` | 图文混排 | 左图(50%) + 右文 |
+| `image-right` | 图文混排 | 左文 + 右图(50%) |
+| `fact` | 数据亮点 | 超大数字居中 + 说明 |
+| `quote` | 引用/金句 | 大字引文 + 出处 |
+| `three-cards` | 特性展示 | 标题 + 三列卡片 |
+
+### 11.2 坐标模板（复制即用）
+
+#### `title-center` — 封面/章节页
+```
+标题:   left:80px; top:180px; width:800px; text-align:center; font-size:48px;
+副标题: left:80px; top:260px; width:800px; text-align:center; font-size:20px; opacity:0.7;
+装饰:   自由发挥（背景渐变/几何图形/图片）
+```
+
+#### `default` — 标题+正文（最常用）
+```
+标题:   left:60px; top:40px; width:840px; font-size:32px;
+正文区: left:60px; top:110px; width:840px; height:390px;
+  - bullet间距: 每条高40px，font-size:18px;
+  - 最多6条bullet
+页码:   left:900px; top:510px; font-size:11px; opacity:0.4;
+```
+
+#### `two-cols` — 左右双栏
+```
+标题:   left:60px; top:40px; width:840px; font-size:32px;
+左栏:   left:60px; top:110px; width:400px; height:390px;
+右栏:   left:500px; top:110px; width:400px; height:390px;
+分隔线(可选): left:470px; top:120px; width:1px; height:370px; background:rgba(0,0,0,0.1);
+```
+
+#### `image-left` — 左图右文
+```
+图片:   left:0; top:0; width:460px; height:540px; object-fit:cover;
+标题:   left:500px; top:60px; width:420px; font-size:28px;
+正文:   left:500px; top:130px; width:420px; height:360px; font-size:16px;
+```
+
+#### `image-right` — 左文右图
+```
+标题:   left:60px; top:60px; width:420px; font-size:28px;
+正文:   left:60px; top:130px; width:420px; height:360px; font-size:16px;
+图片:   left:500px; top:0; width:460px; height:540px; object-fit:cover;
+```
+
+#### `fact` — 数据亮点页
+```
+大数字: left:80px; top:160px; width:800px; text-align:center; font-size:96px; font-weight:700;
+标签:   left:80px; top:290px; width:800px; text-align:center; font-size:24px; opacity:0.6;
+说明:   left:160px; top:350px; width:640px; text-align:center; font-size:16px; opacity:0.5;
+```
+
+#### `quote` — 引用/金句
+```
+引号装饰: left:60px; top:120px; font-size:120px; opacity:0.1; (用 " 字符)
+引文:   left:100px; top:160px; width:700px; font-size:28px; line-height:1.6; font-style:italic;
+出处:   left:100px; top:380px; width:700px; font-size:16px; opacity:0.6; (— 作者名)
+```
+
+#### `three-cards` — 三列卡片
+```
+标题:   left:60px; top:40px; width:840px; font-size:32px;
+卡片1:  left:60px; top:120px; width:260px; height:360px; border-radius:12px; padding:24px;
+卡片2:  left:350px; top:120px; width:260px; height:360px; border-radius:12px; padding:24px;
+卡片3:  left:640px; top:120px; width:260px; height:360px; border-radius:12px; padding:24px;
+  卡片内部: icon(48px) + 小标题(18px,bold) + 描述(14px)
+```
+
+### 11.3 布局选择规则
+
+Agent 生成时按以下优先级自动选择 layout：
+1. 第1页 → `title-center`
+2. 最后1页 → `title-center`（感谢页）
+3. 内容含对比/两组并列 → `two-cols`
+4. 内容含图片且图片是主角 → `image-left` 或 `image-right`（交替使用）
+5. 内容是单个数字/统计 → `fact`
+6. 内容是引用/名言 → `quote`
+7. 内容是3个并列特性 → `three-cards`
+8. 其他 → `default`
+
+**关键原则：一个 deck 中至少使用 3 种不同 layout，禁止全部用 default。**
+
+### 11.4 JSON 数据格式
+
+```json
+{
+  "innerHTML": "<div ...>...</div>",
+  "layout": "two-cols",
+  "notes": "演讲者备注（可选）"
+}
+```
+
+`layout` 字段为元数据标记，不影响渲染（innerHTML 已包含正确坐标），但用于：
+- 编辑器侧边栏显示布局类型图标
+- 未来支持"切换布局"功能（重新排列元素坐标）
+- Agent 理解现有 slide 结构
