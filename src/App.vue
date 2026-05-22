@@ -158,15 +158,15 @@ const { insertTextBox, insertLatex, handleImageUpload, handleVideoUpload } = use
 function onFlattenChildren() {
   const el = getSelectedDomEl()
   if (!el || !el.children.length) return
-  const rect = el.getBoundingClientRect()
-  const parentRect = el.offsetParent?.getBoundingClientRect() || rect
+  const elRect = el.getBoundingClientRect()
   Array.from(el.children).forEach(child => {
     const cr = child.getBoundingClientRect()
     child.style.position = 'absolute'
-    child.style.left = (cr.left - parentRect.left) + 'px'
-    child.style.top = (cr.top - parentRect.top) + 'px'
+    child.style.left = (cr.left - elRect.left) + 'px'
+    child.style.top = (cr.top - elRect.top) + 'px'
     child.style.width = cr.width + 'px'
   })
+  el.style.position = 'absolute'
   syncDomToSlides()
 }
 
