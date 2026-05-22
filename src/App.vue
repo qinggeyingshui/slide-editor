@@ -49,6 +49,11 @@
           </div>
         </div>
       </div>
+      <FloatingToolbar :elStyles="selectedElStyles"
+        @apply-style="onApplyStyle"
+        @clone-before="onCloneBefore"
+        @clone-after="onCloneAfter"
+        @delete-el="onDeleteEl" />
       <div class="canvas-wrap" ref="canvasWrapRef">
         <div class="canvas" :style="canvasTransform">
           <div class="canvas-inner" :style="innerTransform">
@@ -67,13 +72,7 @@
           </div>
         </div>
       </div>
-      <div class="props-panel">
-        <StylePanel :elStyles="selectedElStyles"
-          @apply-style="onApplyStyle"
-          @clone-before="onCloneBefore"
-          @clone-after="onCloneAfter"
-          @delete-el="onDeleteEl" />
-      </div>
+
     </div>
   </div>
 </template>
@@ -82,7 +81,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import HtmlCanvas from './components/HtmlCanvas.vue'
 import ShapeLayer from './components/ShapeLayer.vue'
-import StylePanel from './components/StylePanel.vue'
+import FloatingToolbar from './components/FloatingToolbar.vue'
 import { presentationSlides, presentationCSS } from './model/presentationData.js'
 import { createShape } from './model/types.js'
 
@@ -247,6 +246,8 @@ function onSelectElement(el) {
     fontSize: cs.fontSize,
     lineHeight: cs.lineHeight,
     fontWeight: cs.fontWeight,
+    fontStyle: cs.fontStyle,
+    textDecoration: cs.textDecoration,
     textAlign: cs.textAlign,
     color: cs.color,
     backgroundColor: cs.backgroundColor,
@@ -261,12 +262,30 @@ function getCanvasApi() {
   const root = document.querySelector('.html-canvas-root')
   return root && root.__api
 }
-function onApplyStyle(prop, value) {
+function onApplyStyle(payload) {
+  console.log('[onApplyStyle]', payload, 'selectedDomEl:', selectedDomEl)
+  window.__lastApply = { payload, hasEl: !!selectedDomEl, time: Date.now() }
   if (!selectedDomEl) return
-  selectedDomEl.style[prop] = value
+  const { prop, value } = payload
+  let finalValue = value
+  // Ensure numeric-only fontSize gets 'px' suffix
+  if (prop === 'fontSize' && /^\d+(\.\d+)?$/.test(value)) {
+    finalValue = value + 'px'
+  }
+  selectedDomEl.style[prop] = finalValue
+  // For color/font props, also apply to all children that have inline overrides
+  const inheritProps = ['color', 'backgroundColor', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign', 'fontStyle', 'textDecoration']
+  if (inheritProps.includes(prop)) {
+    selectedDomEl.querySelectorAll('*').forEach(child => {
+      if (child.style[prop]) {
+        child.style[prop] = finalValue
+      }
+    })
+  }
   // Refresh the style panel to reflect the change
   onSelectElement(selectedDomEl)
   // Trigger save
+  syncDomToSlides()
   const api = getCanvasApi()
   if (api && api.pushHistory) api.pushHistory()
 }
@@ -443,10 +462,9 @@ html, body, #app { height: 100%; }
 .thumb-num { font-size: 11px; color: #666; margin-bottom: 4px; }
 .thumb-preview { width: 100%; aspect-ratio: 16/9; border-radius: 4px; background: #f0f4f8; border: 1px solid #eee; overflow: hidden; position: relative; }
 .thumb-content { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform: scale(0.137); transform-origin: top left; pointer-events: none; }
-.canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #e8eaed; overflow: hidden; padding: 0; }
+.canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #e8eaed; overflow: hidden; padding: 0; position: relative; }
 .canvas { box-shadow: 0 2px 12px rgba(0,0,0,0.15); overflow: hidden; border-radius: 4px; }
 .canvas-inner { position: relative; }
-.props-panel { width: 320px; background: #fff; border-left: 1px solid #e8e8e8; overflow-y: auto; }
 .save-status { font-size: 12px; color: #34a853; font-weight: 500; margin-left: 8px; animation: fadeIn 0.2s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>

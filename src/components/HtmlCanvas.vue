@@ -3,6 +3,8 @@
     <div class="slide-render" ref="slideRef" :style="slideStyle"></div>
     <div v-for="(os, i) in outlineStyles" :key="i" class="selection-outline" :style="os"></div>
     <!-- Resize handles -->
+    <!-- Marquee selection box -->
+    <div v-if="marquee" class="marquee-box" :style="marqueeStyle"></div>
     <template v-if="resizeHandles.length">
       <div v-for="(h, i) in resizeHandles" :key="'rh'+i"
         class="resize-handle" :class="'rh-'+h.cursor"
@@ -27,6 +29,20 @@ const selectedEls = ref([])  // multi-select
 const outlineStyles = ref([])
 const resizeHandles = ref([])
 const guides = ref([])
+const marquee = ref(null) // { startX, startY, x, y, w, h }
+const marqueeStyle = computed(() => {
+  if (!marquee.value) return {}
+  const m = marquee.value
+  return {
+    position: 'absolute',
+    left: m.x + 'px', top: m.y + 'px',
+    width: m.w + 'px', height: m.h + 'px',
+    border: '1px dashed #1a73e8',
+    background: 'rgba(26,115,232,0.08)',
+    pointerEvents: 'none',
+    zIndex: 9999
+  }
+})
 const activeGroup = ref(null) // "entered" group for deep editing
 let editingEl = null
 
@@ -100,6 +116,9 @@ function redo() {
 let clipboard = null
 function onKeyDown(e) {
   if (editingEl) return // don't intercept while editing text
+  // Don't intercept when focus is in toolbar inputs (font select, size input, etc.)
+  const tag = e.target.tagName
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
     e.preventDefault()
     if (e.shiftKey) redo(); else undo()
@@ -108,7 +127,7 @@ function onKeyDown(e) {
     e.preventDefault(); redo()
   }
   // Delete selected element
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEls.value.length) {
+  if (e.key === 'Delete' && selectedEls.value.length) {
     e.preventDefault()
     const el = selectedEls.value[0]
     const next = el.nextElementSibling || el.previousElementSibling
@@ -142,6 +161,16 @@ function onKeyDown(e) {
     }
   }
   if (e.key === 'Escape') { deselectAll() }
+  // Group: Ctrl+G
+  if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+    e.preventDefault()
+    groupSelected()
+  }
+  // Ungroup: Ctrl+Shift+G
+  if ((e.ctrlKey || e.metaKey) && e.key === 'G' && e.shiftKey) {
+    e.preventDefault()
+    ungroupSelected()
+  }
 }
 
 // --- Paste image ---
@@ -166,6 +195,59 @@ function onPaste(e) {
       break
     }
   }
+}
+
+// --- Group / Ungroup ---
+function groupSelected() {
+  if (selectedEls.value.length < 2) return
+  const scale = slideRef.value.getBoundingClientRect().width / 1280
+  // Calculate bounding box of all selected elements
+  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity
+  for (const el of selectedEls.value) {
+    const l = parseInt(el.style.left) || 0
+    const t = parseInt(el.style.top) || 0
+    const w = parseInt(el.style.width) || el.offsetWidth / scale
+    const h = parseInt(el.style.height) || el.offsetHeight / scale
+    minL = Math.min(minL, l)
+    minT = Math.min(minT, t)
+    maxR = Math.max(maxR, l + w)
+    maxB = Math.max(maxB, t + h)
+  }
+  // Create group container
+  const group = document.createElement('div')
+  group.setAttribute('data-group', 'true')
+  group.style.cssText = `position:absolute;left:${minL}px;top:${minT}px;width:${maxR-minL}px;height:${maxB-minT}px;`
+  // Move elements into group, adjust positions relative to group
+  for (const el of selectedEls.value) {
+    const l = parseInt(el.style.left) || 0
+    const t = parseInt(el.style.top) || 0
+    el.style.left = (l - minL) + 'px'
+    el.style.top = (t - minT) + 'px'
+    group.appendChild(el)
+  }
+  slideRef.value.appendChild(group)
+  pushHistory(); saveHtml()
+  selectElement(group)
+}
+
+function ungroupSelected() {
+  if (selectedEls.value.length !== 1) return
+  const group = selectedEls.value[0]
+  if (!group.hasAttribute('data-group')) return
+  const gl = parseInt(group.style.left) || 0
+  const gt = parseInt(group.style.top) || 0
+  // Move children back to slide with absolute positions
+  const children = Array.from(group.children)
+  for (const child of children) {
+    const cl = parseInt(child.style.left) || 0
+    const ct = parseInt(child.style.top) || 0
+    child.style.left = (cl + gl) + 'px'
+    child.style.top = (ct + gt) + 'px'
+    slideRef.value.appendChild(child)
+  }
+  group.remove()
+  pushHistory(); saveHtml()
+  deselectAll()
 }
 
 // --- Selection & Drag ---
@@ -259,14 +341,41 @@ function onResizeStart(e, dir) {
   const origW = parseInt(el.style.width)||el.offsetWidth/scale
   const origH = parseInt(el.style.height)||el.offsetHeight/scale
 
+  const aspect = origW / origH
+  const isCorner = ['nw','ne','sw','se'].includes(dir)
+
   function onMove(ev) {
     const dx = (ev.clientX - startX) / scale
     const dy = (ev.clientY - startY) / scale
     let nl = origL, nt = origT, nw = origW, nh = origH
-    if (dir.includes('e')) nw = Math.max(20, origW + dx)
-    if (dir.includes('w')) { nw = Math.max(20, origW - dx); nl = origL + dx }
-    if (dir.includes('s')) nh = Math.max(20, origH + dy)
-    if (dir.includes('n')) { nh = Math.max(20, origH - dy); nt = origT + dy }
+
+    if (isCorner) {
+      // Proportional resize from corners
+      if (dir === 'se') {
+        nw = Math.max(20, origW + dx)
+        nh = nw / aspect
+      } else if (dir === 'ne') {
+        nw = Math.max(20, origW + dx)
+        nh = nw / aspect
+        nt = origT + (origH - nh)
+      } else if (dir === 'sw') {
+        nw = Math.max(20, origW - dx)
+        nh = nw / aspect
+        nl = origL + (origW - nw)
+      } else if (dir === 'nw') {
+        nw = Math.max(20, origW - dx)
+        nh = nw / aspect
+        nl = origL + (origW - nw)
+        nt = origT + (origH - nh)
+      }
+    } else {
+      // Free resize from edges
+      if (dir === 'e') nw = Math.max(20, origW + dx)
+      if (dir === 'w') { nw = Math.max(20, origW - dx); nl = origL + dx }
+      if (dir === 's') nh = Math.max(20, origH + dy)
+      if (dir === 'n') { nh = Math.max(20, origH - dy); nt = origT + dy }
+    }
+
     el.style.left = nl + 'px'; el.style.top = nt + 'px'
     el.style.width = nw + 'px'; el.style.height = nh + 'px'
     updateOutlines()
@@ -308,14 +417,66 @@ function computeGuides(activeEl, ax, ay, aw, ah) {
   guides.value = newGuides.slice(0, 6) // limit to avoid clutter
 }
 
+// --- Marquee (box) selection ---
+function startMarquee(e) {
+  deselectAll()
+  const sr = slideRef.value.getBoundingClientRect()
+  const scale = sr.width / 1280
+  const startX = (e.clientX - sr.left) / scale
+  const startY = (e.clientY - sr.top) / scale
+  marquee.value = { startX, startY, x: startX, y: startY, w: 0, h: 0 }
+
+  function onMove(ev) {
+    const curX = (ev.clientX - sr.left) / scale
+    const curY = (ev.clientY - sr.top) / scale
+    const x = Math.min(startX, curX)
+    const y = Math.min(startY, curY)
+    const w = Math.abs(curX - startX)
+    const h = Math.abs(curY - startY)
+    marquee.value = { startX, startY, x, y, w, h }
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    if (!marquee.value || (marquee.value.w < 5 && marquee.value.h < 5)) {
+      marquee.value = null
+      return
+    }
+    // Find elements intersecting the marquee box
+    const m = marquee.value
+    const children = Array.from(slideRef.value.children)
+    for (const child of children) {
+      const cl = parseInt(child.style.left) || 0
+      const ct = parseInt(child.style.top) || 0
+      const cw = parseInt(child.style.width) || child.offsetWidth / scale
+      const ch = parseInt(child.style.height) || child.offsetHeight / scale
+      // Check intersection
+      if (cl < m.x + m.w && cl + cw > m.x && ct < m.y + m.h && ct + ch > m.y) {
+        selectedEls.value.push(child)
+      }
+    }
+    marquee.value = null
+    updateOutlines()
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
+
 function onMouseDown(e) {
   let el = e.target
-  if (el === slideRef.value || el === rootRef.value) { deselectAll(); return }
+  if (el === slideRef.value || el === rootRef.value) {
+    // Start marquee selection on blank area
+    startMarquee(e)
+    return
+  }
 
   // "Deep select": if clicking inside the currently selected element,
   // select the clicked child directly (don't bubble up to top-level absolute)
+  // Skip deep-select when shift is held (multi-select mode)
   const currentSel = selectedEls.value[0]
-  if (currentSel && currentSel.contains(el) && el !== currentSel) {
+  if (!e.shiftKey && currentSel && currentSel.contains(el) && el !== currentSel) {
     // Use the direct click target (deepest element)
     // But walk up to find a meaningful element (has siblings or is a direct child of currentSel)
     let candidate = el
@@ -344,10 +505,10 @@ function onMouseDown(e) {
     }
     updateOutlines()
     emit('select-element', el)
+    return  // Don't start drag on shift+click
   } else {
-    if (!selectedEls.value.includes(el)) {
-      selectElement(el)
-    }
+    // Always re-select (even if same element) to exit deep-select state
+    selectElement(el)
   }
 
   // Drag
@@ -450,5 +611,8 @@ defineExpose({ insertHtml, undo, redo })
 .rh-w { cursor: w-resize; }
 .align-guide {
   position: absolute; pointer-events: none; z-index: 99; opacity: 0.7;
+}
+.marquee-box {
+  position: absolute; pointer-events: none; z-index: 98;
 }
 </style>
