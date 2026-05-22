@@ -1,6 +1,7 @@
 <template>
   <div v-if="elStyles" class="floating-toolbar">
-      <!-- Font family -->
+    <!-- Group: Font -->
+    <div class="tb-group">
       <select class="tb-select font-select" :value="parseFontFamily(elStyles.fontFamily)" @change="apply('fontFamily', $event.target.value)">
         <option value="Arial">Arial</option>
         <option value="'Helvetica Neue'">Helvetica</option>
@@ -20,44 +21,57 @@
         <option value="'Lato'">Lato</option>
         <option value="'Open Sans'">Open Sans</option>
       </select>
-      <div class="tb-sep"></div>
-      <!-- Font size -->
       <input class="tb-input size-input" type="text" :value="elStyles.fontSize" @change="apply('fontSize', $event.target.value)" title="字号">
-      <div class="tb-sep"></div>
-      <!-- Font weight -->
+    </div>
+    <!-- Group: Format -->
+    <div class="tb-group">
       <button class="tb-btn" :class="{active: parseInt(elStyles.fontWeight)>=700}" @click="toggleBold" title="加粗"><b>B</b></button>
-      <button class="tb-btn" :class="{active: elStyles.fontStyle==='italic'}" @click="toggleItalic" title="斜体"><i>I</i></button>
+      <button class="tb-btn italic-btn" :class="{active: elStyles.fontStyle==='italic'}" @click="toggleItalic" title="斜体"><i>I</i></button>
       <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('underline')}" @click="toggleUnderline" title="下划线"><u>U</u></button>
       <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('line-through')}" @click="toggleStrikethrough" title="删除线"><s>S</s></button>
-      <div class="tb-sep"></div>
-      <!-- Text align -->
-      <button class="tb-btn" :class="{active: elStyles.textAlign==='left'}" @click="apply('textAlign','left')" title="左对齐">≡</button>
-      <button class="tb-btn" :class="{active: elStyles.textAlign==='center'}" @click="apply('textAlign','center')" title="居中">☰</button>
-      <button class="tb-btn" :class="{active: elStyles.textAlign==='right'}" @click="apply('textAlign','right')" title="右对齐">≡</button>
-      <div class="tb-sep"></div>
-      <!-- Text color -->
+    </div>
+    <!-- Group: Align -->
+    <div class="tb-group">
+      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='left'}" @click="apply('textAlign','left')" title="左对齐">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M1 5h8M1 8h12M1 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='center'}" @click="apply('textAlign','center')" title="居中">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M3 5h8M1 8h12M4 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='right'}" @click="apply('textAlign','right')" title="右对齐">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M6 5h7M1 8h12M8 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <!-- Group: Color -->
+    <div class="tb-group">
       <label class="tb-color-wrap" title="文字颜色">
         <span class="color-label">A</span>
         <span class="color-indicator" :style="{backgroundColor: elStyles.color || '#000'}"></span>
         <input type="color" :value="toHex(elStyles.color)" @input="apply('color', $event.target.value)">
       </label>
-      <!-- Background color -->
       <label class="tb-color-wrap" title="背景色">
-        <span class="color-label">⬛</span>
+        <svg class="color-label" width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" opacity="0.3"/><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
         <span class="color-indicator" :style="{backgroundColor: elStyles.backgroundColor || 'transparent'}"></span>
         <input type="color" :value="toHex(elStyles.backgroundColor)" @input="apply('backgroundColor', $event.target.value)">
       </label>
-      <div class="tb-sep"></div>
-      <!-- Opacity -->
-      <input class="tb-input opacity-input" type="range" min="0" max="1" step="0.05" :value="elStyles.opacity" @input="apply('opacity', $event.target.value)" title="透明度">
-      <div class="tb-sep"></div>
-      <!-- Clone -->
-      <button class="tb-btn" @click="$emit('clone-before')" title="克隆到前面">⬆️</button>
-      <button class="tb-btn" @click="$emit('clone-after')" title="克隆到后面">⬇️</button>
-      <div class="tb-sep"></div>
-      <!-- Delete -->
-      <button class="tb-btn tb-delete" @click="$emit('delete-el')" title="删除">🗑</button>
     </div>
+    <!-- Group: Opacity -->
+    <div class="tb-group">
+      <input class="tb-input opacity-input" type="range" min="0" max="1" step="0.05" :value="elStyles.opacity" @input="apply('opacity', $event.target.value)" title="透明度">
+    </div>
+    <!-- Group: Actions -->
+    <div class="tb-group actions-group">
+      <button class="tb-btn action-btn" @click="$emit('clone-before')" title="克隆到前面">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 11V3M4 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tb-btn action-btn" @click="$emit('clone-after')" title="克隆到后面">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tb-btn tb-delete" @click="$emit('delete-el')" title="删除">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 4h8M5.5 4V3a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M4.5 4v7.5a1 1 0 001 1h3a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -112,62 +126,191 @@ function toHex(color) {
 <style scoped>
 .floating-toolbar {
   position: fixed;
-  top: 64px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-float);
-  border: 1px solid var(--color-border);
+  gap: 4px;
+  padding: 8px 14px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
   white-space: nowrap;
   animation: floatIn 0.2s ease-out;
 }
-@keyframes floatIn { from { opacity: 0; transform: translateX(-50%) translateY(-6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-.tb-sep { width: 1px; height: 20px; background: var(--color-border); margin: 0 4px; }
+@keyframes floatIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Group wrapper — Canva uses subtle vertical dividers */
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-right: 1.5px solid #e8e8e8;
+}
+.tb-group:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+.tb-group:first-child {
+  padding-left: 0;
+}
+.tb-group:hover {
+  background: none;
+}
+.actions-group {
+  background: transparent;
+}
+
+/* Buttons — Canva style: 36px tall, generous padding */
 .tb-btn {
-  border: none; background: none; cursor: pointer; padding: 6px 10px;
-  border-radius: var(--radius-sm); font-size: 14px;
-  color: var(--color-text-secondary); min-width: 30px;
-  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0d1216;
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  line-height: 1;
 }
-.tb-btn:hover { background: var(--color-surface-alt); color: var(--color-text-primary); transform: scale(1.05); }
-.tb-btn:active { transform: scale(0.95); }
-.tb-btn.active { background: var(--color-primary-light); color: var(--color-primary); }
-.tb-delete { color: var(--color-danger); }
-.tb-delete:hover { background: var(--color-danger-light); color: var(--color-danger); }
+.tb-btn:hover {
+  background: #f0f0f0;
+  color: #0d1216;
+}
+.tb-btn:active {
+  background: #e4e4e4;
+}
+.tb-btn.active {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+.italic-btn { font-family: Georgia, serif; }
+
+/* Delete */
+.tb-delete {
+  color: #5f6368;
+}
+.tb-delete:hover {
+  background: #fce8e6;
+  color: #d93025;
+}
+
+/* Select — Canva style: clean, 36px height, 14px font */
 .tb-select {
-  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  padding: 4px 8px; font-size: 12px; background: var(--color-surface);
-  cursor: pointer; outline: none; color: var(--color-text-secondary);
-  transition: border-color var(--transition-fast);
+  border: 1.5px solid #dadce0;
+  border-radius: 8px;
+  padding: 6px 28px 6px 10px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+  color: #0d1216;
+  height: 36px;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
 }
-.tb-select:hover { border-color: var(--color-border-hover); }
-.tb-select:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-.font-select { width: 110px; }
+.tb-select:hover {
+  border-color: #0d1216;
+}
+.tb-select:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+.font-select { width: 120px; }
+
+/* Input — Canva style */
 .tb-input {
-  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  padding: 4px 8px; font-size: 12px; outline: none;
-  color: var(--color-text-primary);
-  transition: border-color var(--transition-fast);
+  border: 1.5px solid #dadce0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  color: #0d1216;
+  background: #fff;
+  height: 36px;
+  transition: border-color 0.15s ease;
 }
-.tb-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-.size-input { width: 50px; text-align: center; }
-.opacity-input { width: 64px; accent-color: var(--color-primary); border: none; cursor: pointer; }
+.tb-input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+.size-input { width: 52px; text-align: center; }
+
+/* Range slider */
+.opacity-input {
+  width: 64px;
+  accent-color: #1a73e8;
+  border: none;
+  cursor: pointer;
+  height: 4px;
+}
+
+/* Color picker — Canva style */
 .tb-color-wrap {
-  display: flex; flex-direction: column; align-items: center; cursor: pointer;
-  position: relative; padding: 3px 6px; border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
 }
-.tb-color-wrap:hover { background: var(--color-surface-alt); }
+.tb-color-wrap:hover {
+  background: #f0f0f0;
+}
 .tb-color-wrap input[type="color"] {
-  position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
-  width: 0; height: 0; padding: 0; border: none; opacity: 0; cursor: pointer;
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
 }
-.color-label { font-size: 14px; font-weight: 700; line-height: 1; color: var(--color-text-primary); }
-.color-indicator { width: 18px; height: 3px; border-radius: 2px; margin-top: 2px; }
+.color-label {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0d1216;
+}
+.color-indicator {
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* SVG icons in buttons */
+.tb-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.align-btn, .action-btn {
+  padding: 7px 8px;
+  min-width: 36px;
+}
 </style>

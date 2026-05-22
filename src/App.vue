@@ -6,12 +6,11 @@
         <span class="app-title">Slide Editor</span>
       </div>
       <div class="toolbar-center">
-        <button @click="addSlide">+ 新页</button>
-        <button @click="deleteSlide" :disabled="slides.length<=1">删除页</button>
-        <button @click="duplicateSlide">复制页</button>
-        <span class="tb-sep"></span>
         <div class="shape-dropdown-wrap">
-          <button @click="showShapeMenu = !showShapeMenu">形状 ▾</button>
+          <button @click="showShapeMenu = !showShapeMenu">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
+            形状
+          </button>
           <div v-if="showShapeMenu" class="shape-dropdown">
             <button @click="insertShape('rect')">矩形</button>
             <button @click="insertShape('ellipse')">椭圆</button>
@@ -21,15 +20,22 @@
           </div>
         </div>
         <label class="tb-upload-btn">
-          📷 图片
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><circle cx="5.5" cy="6.5" r="1.5"/><path d="M1.5 11.5l3.5-3.5 2.5 2.5 3-3.5 4 4.5"/></svg>
+          图片
           <input type="file" accept="image/*" hidden @change="handleImageUpload" />
         </label>
-        <button @click="insertTextBox">T 文本</button>
+        <button @click="insertTextBox">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M8 4v9M5.5 13h5"/></svg>
+          文本
+        </button>
         <span class="tb-sep"></span>
-        <button @click="saveToFile" title="Ctrl+S">💾 保存</button>
-        <button @click="exportJSON">📥 导出</button>
+        <button @click="saveToFile" title="Ctrl+S">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.5 14.5h-9a1 1 0 01-1-1v-11a1 1 0 011-1h7l3 3v9a1 1 0 01-1 1z"/><path d="M5.5 14.5v-4h5v4"/><path d="M5.5 1.5v3h4"/></svg>
+          保存
+        </button>
+        <button @click="exportJSON">导出</button>
         <label class="tb-upload-btn">
-          📂 导入
+          导入
           <input type="file" accept=".json" hidden @change="importJSON" />
         </label>
         <span v-if="saveStatus" class="save-status">{{ saveStatus }}</span>
@@ -85,35 +91,19 @@ import FloatingToolbar from './components/FloatingToolbar.vue'
 import { presentationSlides, presentationCSS } from './model/presentationData.js'
 import { createShape } from './model/types.js'
 
-const STORAGE_KEY = 'slide-editor-data'
-
 // Inject presentation CSS
 const styleEl = document.createElement('style')
 styleEl.textContent = presentationCSS
 document.head.appendChild(styleEl)
 
-// Load slides: localStorage first, fallback to presentationData
+// Load slides: always from presentationData
 function loadSlides() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    }
-  } catch (e) { /* ignore parse errors */ }
   return presentationSlides.map(s => ({ ...s }))
-}
-
-function saveSlides() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(slides.value))
-  } catch (e) { /* quota exceeded etc */ }
 }
 
 // Save to source file via Vite middleware
 const saveStatus = ref('')
 async function saveToFile() {
-  saveSlides() // also update localStorage
   try {
     const res = await fetch('/api/save', {
       method: 'POST',
@@ -151,7 +141,6 @@ function importJSON(e) {
       if (Array.isArray(data) && data.length > 0) {
         slides.value = data
         currentIndex.value = 0
-        saveSlides()
         saveStatus.value = '✓ 已导入'
         setTimeout(() => saveStatus.value = '', 2000)
       }
@@ -173,9 +162,10 @@ const canvasScale = ref(1)
 
 function updateScale() {
   if (!canvasWrapRef.value) return
-  const w = canvasWrapRef.value.clientWidth * 0.95
-  const h = canvasWrapRef.value.clientHeight * 0.95
-  canvasScale.value = Math.min(w / 1280, h / 720)
+  const w = canvasWrapRef.value.clientWidth
+  const h = canvasWrapRef.value.clientHeight
+  // 尽量填满 wrap 区域，只留极小边距
+  canvasScale.value = Math.min(w / 1280, h / 720) * 0.92
 }
 
 const canvasTransform = computed(() => {
@@ -203,10 +193,27 @@ function onKeyDown(e) {
     saveToFile()
     return
   }
+  // Ctrl+N → new slide
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault()
+    addSlide()
+    return
+  }
+  // Ctrl+D → duplicate slide
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault()
+    duplicateSlide()
+    return
+  }
+  // Delete/Backspace → delete slide (when no element selected)
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !selectedDomEl && slides.value.length > 1) {
+    e.preventDefault()
+    deleteSlide()
+    return
+  }
 }
 onMounted(() => {
   document.addEventListener('keydown', onKeyDown)
-  window.addEventListener('beforeunload', saveToFile)
   ro = new ResizeObserver(updateScale)
   nextTick(() => {
     if (canvasWrapRef.value) {
@@ -221,13 +228,7 @@ watch(canvasWrapRef, (el) => {
     updateScale()
   }
 })
-onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydown', onKeyDown); window.removeEventListener('beforeunload', saveToFile) })
-
-// Save to file on page switch
-watch(currentIndex, () => { saveToFile() })
-
-// Auto-save to localStorage on any slide change
-watch(slides, saveSlides, { deep: true })
+onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydown', onKeyDown) })
 
 // Element selection
 const selectedElStyles = ref(null)
@@ -459,7 +460,7 @@ function thumbStyle(s) {
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -476,7 +477,7 @@ html, body, #app { height: 100%; }
 
 /* === Toolbar === */
 .toolbar {
-  height: 56px; background: var(--color-surface);
+  height: 60px; background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex; align-items: center; padding: 0 24px;
   justify-content: space-between;
@@ -484,30 +485,29 @@ html, body, #app { height: 100%; }
   position: relative; z-index: 10;
 }
 .toolbar-left .app-title {
-  font-size: 15px; font-weight: 700; color: var(--color-text-primary);
+  font-size: 16px; font-weight: 700; color: var(--color-text-primary);
   letter-spacing: -0.3px;
 }
-.toolbar-center { display: flex; gap: 6px; align-items: center; }
+.toolbar-center { display: flex; gap: 8px; align-items: center; }
 .toolbar-center button {
-  padding: 7px 14px; border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); background: var(--color-surface);
-  cursor: pointer; font-size: 13px; font-weight: 500;
-  color: var(--color-text-secondary);
+  padding: 8px 16px; border: 1.5px solid #dadce0;
+  border-radius: 8px; background: #fff;
+  cursor: pointer; font-size: 14px; font-weight: 500;
+  color: #0d1216; height: 36px;
+  display: inline-flex; align-items: center; gap: 6px;
   transition: all var(--transition-fast);
+  letter-spacing: 0;
 }
 .toolbar-center button:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  background: #f0f0f0;
+  border-color: #0d1216;
+  color: #0d1216;
 }
-.toolbar-center button:active { transform: translateY(0); }
+.toolbar-center button:active { background: #e4e4e4; }
 .toolbar-center button:disabled {
   opacity: 0.35; cursor: not-allowed;
-  transform: none; box-shadow: none;
 }
-.tb-sep { width: 1px; height: 20px; background: var(--color-border); margin: 0 6px; }
+.tb-sep { width: 1.5px; height: 24px; background: #e8e8e8; margin: 0 4px; }
 .shape-dropdown-wrap { position: relative; }
 .shape-dropdown {
   position: absolute; top: calc(100% + 6px); left: 0;
@@ -529,18 +529,17 @@ html, body, #app { height: 100%; }
   color: var(--color-primary);
 }
 .tb-upload-btn {
-  padding: 7px 14px; border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); background: var(--color-surface);
-  cursor: pointer; font-size: 13px; font-weight: 500;
-  color: var(--color-text-secondary);
+  padding: 8px 16px; border: 1.5px solid #dadce0;
+  border-radius: 8px; background: #fff;
+  cursor: pointer; font-size: 14px; font-weight: 500;
+  color: #0d1216; height: 36px;
   display: inline-flex; align-items: center; gap: 6px;
   transition: all var(--transition-fast);
 }
 .tb-upload-btn:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateY(-1px);
+  background: #f0f0f0;
+  border-color: #0d1216;
+  color: #0d1216;
 }
 .toolbar-right .page-info {
   font-size: 13px; color: var(--color-text-muted);
@@ -552,9 +551,9 @@ html, body, #app { height: 100%; }
 
 /* === Slide List === */
 .slide-list {
-  width: 220px; background: var(--color-surface);
+  width: 190px; background: var(--color-surface);
   border-right: 1px solid var(--color-border);
-  overflow-y: auto; padding: 16px;
+  overflow-y: auto; padding: 14px;
 }
 .slide-list::-webkit-scrollbar { width: 4px; }
 .slide-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
