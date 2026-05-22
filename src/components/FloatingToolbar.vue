@@ -59,6 +59,12 @@
     <div class="tb-group">
       <input class="tb-input opacity-input" type="range" min="0" max="1" step="0.05" :value="elStyles.opacity" @input="apply('opacity', $event.target.value)" title="透明度">
     </div>
+    <!-- Group: Border Radius -->
+    <div class="tb-group">
+      <svg class="tb-icon" width="14" height="14" viewBox="0 0 14 14"><path d="M2 10V6a4 4 0 014-4h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      <input class="tb-input radius-input" type="range" min="0" max="50" step="1" :value="parseRadius(elStyles.borderRadius)" @input="apply('borderRadius', $event.target.value + '%')" title="圆角">
+      <span class="radius-val">{{ parseRadius(elStyles.borderRadius) }}%</span>
+    </div>
     <!-- Group: Actions -->
     <div class="tb-group actions-group">
       <button class="tb-btn action-btn" @click="$emit('clone-before')" title="克隆到前面">
@@ -113,6 +119,13 @@ function parseFontFamily(val) {
     'PingFang SC': "'PingFang SC'", 'Source Han Sans': "'Source Han Sans'", 'Georgia': 'Georgia', 'Courier New': "'Courier New'" }
   for (const [k, v] of Object.entries(map)) { if (clean.includes(k)) return v }
   return 'Arial'
+}
+function parseRadius(val) {
+  if (!val || val === '0px') return 0
+  const m = val.match(/([\d.]+)%/)
+  if (m) return Math.round(parseFloat(m[1]))
+  const px = parseFloat(val)
+  return isNaN(px) ? 0 : Math.min(50, Math.round(px / 2))
 }
 function toHex(color) {
   if (!color || color === 'transparent') return '#000000'
@@ -261,6 +274,22 @@ function toHex(color) {
   border: none;
   cursor: pointer;
   height: 4px;
+}
+.radius-input {
+  width: 56px;
+  accent-color: #1a73e8;
+  border: none;
+  cursor: pointer;
+  height: 4px;
+}
+.radius-val {
+  font-size: 11px;
+  color: #5f6368;
+  min-width: 28px;
+}
+.tb-icon {
+  color: #5f6368;
+  flex-shrink: 0;
 }
 
 /* Color picker — Canva style */

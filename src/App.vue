@@ -118,9 +118,14 @@ const saveStatus = ref('')
 const presenterMode = ref(false)
 
 function startPresentation() {
-  presenterMode.value = true
+  document.documentElement.requestFullscreen().then(() => {
+    presenterMode.value = true
+  }).catch(() => {
+    presenterMode.value = true
+  })
 }
 function exitPresentation() {
+  if (document.fullscreenElement) document.exitFullscreen?.()
   presenterMode.value = false
 }
 async function saveToFile() {
@@ -184,23 +189,22 @@ function updateScale() {
   if (!canvasWrapRef.value) return
   const w = canvasWrapRef.value.clientWidth
   const h = canvasWrapRef.value.clientHeight
-  // 尽量填满 wrap 区域，只留极小边距
-  canvasScale.value = Math.min(w / 1280, h / 720) * 0.92
+  canvasScale.value = Math.min(w / 960, h / 540) * 0.92
 }
 
 const canvasTransform = computed(() => {
   const s = canvasScale.value
   return {
-    width: (1280 * s) + 'px',
-    height: (720 * s) + 'px'
+    width: (960 * s) + 'px',
+    height: (540 * s) + 'px'
   }
 })
 
 const innerTransform = computed(() => ({
   transform: `scale(${canvasScale.value})`,
   transformOrigin: 'top left',
-  width: '1280px',
-  height: '720px'
+  width: '960px',
+  height: '540px'
 }))
 
 let ro = null
@@ -260,6 +264,17 @@ onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydo
 const selectedElStyles = ref(null)
 let selectedDomEl = null
 const SVG_TAGS = ['path','rect','ellipse','circle','polygon','polyline','line']
+function parseSvgFill(el) {
+  const raw = el.getAttribute('fill') || ''
+  if (!raw.startsWith('url(')) return raw
+  const id = raw.match(/url\(#(.+?)\)/)?.[1]
+  if (!id) return '#000000'
+  const grad = el.closest('svg')?.querySelector(`#${id}`)
+  if (!grad) return '#000000'
+  const stop = grad.querySelector('stop')
+  const c = stop?.getAttribute('stop-color') || stop?.style?.stopColor || '#000000'
+  return c.startsWith('#') ? c : '#000000'
+}
 function isSvgShape(el) { return SVG_TAGS.includes(el?.tagName?.toLowerCase()) }
 function onSelectElement(el) {
   selectedDomEl = el
@@ -269,7 +284,7 @@ function onSelectElement(el) {
   selectedElStyles.value = {
     tagName: el.tagName.toLowerCase(),
     isSvg,
-    svgFill: isSvg ? (el.getAttribute('fill') || '') : '',
+    svgFill: isSvg ? parseSvgFill(el) : '',
     svgStroke: isSvg ? (el.getAttribute('stroke') || '') : '',
     svgStrokeWidth: isSvg ? (el.getAttribute('stroke-width') || '') : '',
     left: el.style?.left || cs.left,
@@ -668,8 +683,8 @@ html, body, #app { height: 100%; }
 .slide-thumb:hover .thumb-preview { box-shadow: var(--shadow-sm); }
 .thumb-content {
   position: absolute; top: 0; left: 0;
-  width: 1280px; height: 720px;
-  transform: scale(0.137); transform-origin: top left;
+  width: 960px; height: 540px;
+  transform: scale(0.183); transform-origin: top left;
   pointer-events: none;
 }
 

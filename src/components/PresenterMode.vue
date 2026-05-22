@@ -1,118 +1,83 @@
 <template>
-  <div class="presenter-overlay" @keydown="onKey" tabindex="0" ref="overlay">
-    <!-- Main slide display -->
-    <div class="presenter-main">
-      <div class="slide-display" v-html="currentSlideHtml"></div>
-      <div class="slide-counter">{{ currentIdx + 1 }} / {{ slides.length }}</div>
+  <div class="fullscreen-presenter" @keydown="onKey" tabindex="0" ref="overlay">
+    <div class="slide-container">
+      <div class="slide-canvas" :style="canvasStyle" v-html="currentSlideHtml"></div>
     </div>
-    <!-- Speaker panel (right side) -->
-    <div class="speaker-panel">
-      <div class="next-preview">
-        <h4>下一页</h4>
-        <div class="next-slide-mini" v-html="nextSlideHtml"></div>
-      </div>
-      <div class="speaker-notes">
-        <h4>演讲者备注</h4>
-        <textarea v-model="notes[currentIdx]" placeholder="在此输入备注..."></textarea>
-      </div>
-      <div class="timer">
-        <span>{{ formattedTime }}</span>
-        <button @click="resetTimer">重置</button>
-      </div>
-      <button class="exit-btn" @click="$emit('exit')">退出 (Esc)</button>
-    </div>
+    <div class="slide-counter">{{ currentIdx + 1 }} / {{ slides.length }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const props = defineProps({
-  slides: { type: Array, required: true },
-  startIndex: { type: Number, default: 0 }
-})
+const props = defineProps({ slides: Array, startIndex: { type: Number, default: 0 } })
 const emit = defineEmits(['exit'])
 
-const overlay = ref(null)
 const currentIdx = ref(props.startIndex)
-const notes = ref(props.slides.map(() => ''))
-const elapsed = ref(0)
-let timer = null
+const currentSlideHtml = computed(() => props.slides[currentIdx.value]?.innerHTML || '')
 
-const currentSlideHtml = computed(() => {
-  const s = props.slides[currentIdx.value]
-  return s ? s.innerHTML || '' : ''
-})
-const nextSlideHtml = computed(() => {
-  const s = props.slides[currentIdx.value + 1]
-  return s ? s.innerHTML || '' : ''
-})
+const windowW = ref(window.innerWidth)
+const windowH = ref(window.innerHeight)
 
-const formattedTime = computed(() => {
-  const m = Math.floor(elapsed.value / 60)
-  const s = elapsed.value % 60
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+const canvasStyle = computed(() => {
+  const scale = Math.min(windowW.value / 960, windowH.value / 540)
+  return {
+    width: '960px',
+    height: '540px',
+    transform: `scale(${scale})`,
+    transformOrigin: 'center center'
+  }
 })
 
-function resetTimer() { elapsed.value = 0 }
+function onResize() { windowW.value = window.innerWidth; windowH.value = window.innerHeight }
 
 function onKey(e) {
   if (e.key === 'Escape') { emit('exit'); return }
   if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault()
     if (currentIdx.value < props.slides.length - 1) currentIdx.value++
-  }
-  if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+    e.preventDefault()
     if (currentIdx.value > 0) currentIdx.value--
   }
 }
 
+function onFullscreenChange() {
+  if (!document.fullscreenElement) emit('exit')
+}
+
 onMounted(() => {
-  nextTick(() => overlay.value?.focus())
-  timer = setInterval(() => elapsed.value++, 1000)
-  document.documentElement.requestFullscreen?.()
+  window.addEventListener('resize', onResize)
+  document.addEventListener('keydown', onKey)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
 })
 onUnmounted(() => {
-  clearInterval(timer)
-  if (document.fullscreenElement) document.exitFullscreen?.()
+  window.removeEventListener('resize', onResize)
+  document.removeEventListener('keydown', onKey)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 </script>
 
 <style scoped>
-.presenter-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  display: flex; background: #1a1a2e; outline: none;
+.fullscreen-presenter {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  cursor: none;
 }
-.presenter-main {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; padding: 20px;
+.fullscreen-presenter:hover { cursor: default; }
+.slide-container {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
 }
-.slide-display {
-  width: 960px; height: 540px; background: #fff;
-  border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  transform-origin: top left; padding: 40px;
+.slide-canvas {
+  position: relative;
+  background: #fff;
+  overflow: hidden;
 }
 .slide-counter {
-  color: #aaa; margin-top: 16px; font-size: 14px;
+  position: fixed; bottom: 16px; right: 24px;
+  color: rgba(255,255,255,0.4); font-size: 14px;
+  pointer-events: none;
 }
-.speaker-panel {
-  width: 320px; background: #16213e; padding: 20px;
-  display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
-}
-.speaker-panel h4 { color: #8892b0; margin: 0 0 8px; font-size: 12px; }
-.next-slide-mini {
-  width: 100%; height: 120px; background: #fff;
-  border-radius: 6px; overflow: hidden; padding: 10px; font-size: 8px;
-}
-.speaker-notes textarea {
-  width: 100%; height: 120px; background: #0f3460;
-  border: 1px solid #334; border-radius: 6px; color: #e0e0e0;
-  padding: 10px; resize: none; font-size: 13px;
-}
-.timer { color: #fff; font-size: 28px; font-variant-numeric: tabular-nums; text-align: center; }
-.timer button { margin-left: 12px; background: #334; color: #aaa; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
-.exit-btn {
-  background: #e74c3c; color: #fff; border: none; border-radius: 6px;
-  padding: 10px; font-size: 14px; cursor: pointer; margin-top: auto;
-}
-.exit-btn:hover { background: #c0392b; }
 </style>

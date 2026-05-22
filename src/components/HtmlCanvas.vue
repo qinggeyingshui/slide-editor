@@ -71,6 +71,23 @@ function renderSlide() {
   // Init history with current state
   history = [slideRef.value.innerHTML]
   historyIndex = 0
+  // Render LaTeX formulas
+  nextTick(() => {
+    if (window.katex && slideRef.value) {
+      slideRef.value.querySelectorAll('*').forEach(el => {
+        if (el.children.length === 0 && el.textContent.includes('$$')) {
+          el.innerHTML = el.innerHTML.replace(/\$\$(.+?)\$\$/g, (_, tex) => {
+            try { return katex.renderToString(tex, { displayMode: true, throwOnError: false }) } catch(e) { return tex }
+          })
+        }
+        if (el.children.length === 0 && el.textContent.includes('$')) {
+          el.innerHTML = el.innerHTML.replace(/\$(.+?)\$/g, (_, tex) => {
+            try { return katex.renderToString(tex, { displayMode: false, throwOnError: false }) } catch(e) { return tex }
+          })
+        }
+      })
+    }
+  })
 }
 
 watch(() => props.slide, () => nextTick(renderSlide), { immediate: true })
@@ -173,7 +190,15 @@ function onKeyDown(e) {
       selectElement(clone)
     }
   }
-  if (e.key === 'Escape') { deselectAll() }
+  if (e.key === 'Escape') {
+    if (activeGroup.value) {
+      activeGroup.value.style.outline = ''
+      activeGroup.value = null
+      deselectAllKeepGroup()
+    } else {
+      deselectAll()
+    }
+  }
   // Group: Ctrl+G
   if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
     e.preventDefault()
@@ -520,11 +545,16 @@ function onMouseDown(e) {
   }
 
   // In full-absolute mode: find the nearest ancestor with position:absolute
-  while (el && el !== slideRef.value && el !== rootRef.value) {
+  // When inside a group, stop at the group boundary (don't select the group itself)
+  const boundary = activeGroup.value || slideRef.value
+  while (el && el !== boundary && el !== slideRef.value && el !== rootRef.value) {
     if (el.style.position === 'absolute' || getComputedStyle(el).position === 'absolute') break
     el = el.parentElement
   }
-  if (!el || el === slideRef.value || el === rootRef.value) { deselectAll(); return }
+  if (!el || el === slideRef.value || el === rootRef.value || el === boundary) {
+    if (activeGroup.value && el === boundary) { deselectAllKeepGroup(); return }
+    deselectAll(); return
+  }
 
   // Shift+click for multi-select
   if (e.shiftKey) {
@@ -585,6 +615,13 @@ function onDblClick(e) {
   let el = e.target
   if (el === slideRef.value || el === rootRef.value) return
   if (el.tagName === 'IMG') return
+
+  // Double-click on a group (or inside a selected group) → enter group editing mode
+  const selEl = selectedEls.value[0]
+  if (selEl && selEl.hasAttribute('data-group') && !activeGroup.value) {
+    enterGroup(selEl)
+    return
+  }
 
   // LaTeX block: double-click to edit formula
   const latexEl = el.closest('.latex-block')

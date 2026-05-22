@@ -96,6 +96,34 @@ export const themes = {
     accent3: '#d97706',
     font: "'Inter', sans-serif"
   },
+  // --- 风格派 (来自ppt-skills调研) ---
+  blackboard: {
+    name: 'Blackboard',
+    ink: '#dfe6e9',
+    paper: '#2d3436',
+    accent: '#ffeaa7',
+    accent2: '#fd79a8',
+    accent3: '#74b9ff',
+    font: "'Caveat', cursive"
+  },
+  blueprint: {
+    name: 'Blueprint',
+    ink: '#e3f2fd',
+    paper: '#1a237e',
+    accent: '#ffffff',
+    accent2: '#80d8ff',
+    accent3: '#b388ff',
+    font: "'JetBrains Mono', monospace"
+  },
+  notebook: {
+    name: 'Notebook',
+    ink: '#37474f',
+    paper: '#fffde7',
+    accent: '#f48fb1',
+    accent2: '#81d4fa',
+    accent3: '#a5d6a7',
+    font: "'Patrick Hand', cursive"
+  },
 }
 
 export function isColorDark(hex) {

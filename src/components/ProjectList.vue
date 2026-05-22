@@ -35,7 +35,7 @@ function getPreview(proj) {
   try {
     const data = JSON.parse(localStorage.getItem(key) || '[]')
     if (data[0] && data[0].innerHTML) {
-      return `<div style="transform:scale(0.18);transform-origin:top left;width:1280px;height:720px;overflow:hidden;pointer-events:none;">${data[0].innerHTML}</div>`
+      return `<div style="transform:scale(0.18);transform-origin:top left;width:960px;height:540px;overflow:hidden;pointer-events:none;">${data[0].innerHTML}</div>`
     }
   } catch(e) {}
   return '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;">空</div>'
