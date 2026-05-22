@@ -73,6 +73,9 @@
       <button class="tb-btn action-btn" @click="$emit('clone-after')" title="克隆到后面">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      <button class="tb-btn action-btn" @click="$emit('flatten-children')" title="打散子元素 (Alt+F)">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h4v4H2zM8 2h4v4H8zM5 8h4v4H5z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+      </button>
       <button class="tb-btn tb-delete" @click="$emit('delete-el')" title="删除">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 4h8M5.5 4V3a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M4.5 4v7.5a1 1 0 001 1h3a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
@@ -82,7 +85,7 @@
 
 <script setup>
 const props = defineProps({ elStyles: Object })
-const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el'])
+const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'flatten-children'])
 
 function apply(prop, value) {
   emit('apply-style', { prop, value })

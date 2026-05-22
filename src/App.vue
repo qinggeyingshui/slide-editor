@@ -75,7 +75,8 @@
         @apply-style="onApplyStyle"
         @clone-before="onCloneBefore"
         @clone-after="onCloneAfter"
-        @delete-el="onDeleteEl" />
+        @delete-el="onDeleteEl"
+        @flatten-children="onFlattenChildren" />
       <div class="canvas-wrap" ref="canvasWrapRef">
         <div class="canvas" :style="canvasTransform">
           <div class="canvas-inner" :style="innerTransform">
@@ -107,301 +108,72 @@ import FloatingToolbar from './components/FloatingToolbar.vue'
 import PresenterMode from './components/PresenterMode.vue'
 import { slides as presentationSlides, presentationCSS } from './model/presentationData.js'
 import { createShape } from './model/types.js'
+import { useFileIO } from './composables/useFileIO.js'
+import { useCanvasScale } from './composables/useCanvasScale.js'
+import { useElementStyle } from './composables/useElementStyle.js'
+import { useInsert } from './composables/useInsert.js'
 
-// Load slides: always from presentationData
-function loadSlides() {
-  return presentationSlides.map(s => ({ ...s }))
-}
+// Slides data
+function loadSlides() { return presentationSlides.map(s => ({ ...s })) }
+const slides = ref(loadSlides())
+const currentIndex = ref(0)
+const currentSlide = computed(() => slides.value[currentIndex.value])
 
-// Save to source file via Vite middleware
-const saveStatus = ref('')
+// Presenter mode
 const presenterMode = ref(false)
-
 function startPresentation() {
-  document.documentElement.requestFullscreen().then(() => {
-    presenterMode.value = true
-  }).catch(() => {
-    presenterMode.value = true
-  })
+  document.documentElement.requestFullscreen().then(() => { presenterMode.value = true }).catch(() => { presenterMode.value = true })
 }
 function exitPresentation() {
   if (document.fullscreenElement) document.exitFullscreen?.()
   presenterMode.value = false
 }
-async function saveToFile() {
-  try {
-    const res = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slides: slides.value })
-    })
-    const data = await res.json()
-    if (data.ok) {
-      saveStatus.value = '✓ 已保存'
-      setTimeout(() => saveStatus.value = '', 2000)
-    }
-  } catch (e) {
-    saveStatus.value = '⚠ 保存失败'
-    setTimeout(() => saveStatus.value = '', 3000)
-  }
-}
 
-// Export JSON
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(slides.value, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'presentation.json'; a.click()
-  URL.revokeObjectURL(url)
-}
+// Composables
+const { saveStatus, saveToFile, exportJSON, importJSON } = useFileIO(slides, currentIndex)
 
-// Import JSON
-function importJSON(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result)
-      if (Array.isArray(data) && data.length > 0) {
-        slides.value = data
-        currentIndex.value = 0
-        saveStatus.value = '✓ 已导入'
-        setTimeout(() => saveStatus.value = '', 2000)
-      }
-    } catch (err) { alert('JSON 格式错误') }
-  }
-  reader.readAsText(file)
-  e.target.value = ''
-}
-
-// Slides data
-const slides = ref(loadSlides())
-const currentIndex = ref(0)
-const currentSlide = computed(() => slides.value[currentIndex.value])
-
-// Canvas scaling
 const canvasWrapRef = ref(null)
 const htmlCanvasRef = ref(null)
-const canvasScale = ref(1)
+const { canvasScale, updateScale, canvasTransform, innerTransform } = useCanvasScale(canvasWrapRef)
 
-function updateScale() {
-  if (!canvasWrapRef.value) return
-  const w = canvasWrapRef.value.clientWidth
-  const h = canvasWrapRef.value.clientHeight
-  canvasScale.value = Math.min(w / 960, h / 540) * 0.92
-}
-
-const canvasTransform = computed(() => {
-  const s = canvasScale.value
-  return {
-    width: (960 * s) + 'px',
-    height: (540 * s) + 'px'
-  }
-})
-
-const innerTransform = computed(() => ({
-  transform: `scale(${canvasScale.value})`,
-  transformOrigin: 'top left',
-  width: '960px',
-  height: '540px'
-}))
-
-let ro = null
-function onKeyDown(e) {
-  // Don't intercept when editing text
-  if (e.target.isContentEditable) return
-  // F5 → presentation mode
-  if (e.key === 'F5') {
-    e.preventDefault()
-    startPresentation()
-    return
-  }
-  // Ctrl+S → save to file
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault()
-    saveToFile()
-    return
-  }
-  // Ctrl+N → new slide
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-    e.preventDefault()
-    addSlide()
-    return
-  }
-  // Ctrl+D → duplicate slide
-  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-    e.preventDefault()
-    duplicateSlide()
-    return
-  }
-  // Delete/Backspace → delete slide (when no element selected)
-  if ((e.key === 'Delete' || e.key === 'Backspace') && !selectedDomEl && slides.value.length > 1) {
-    e.preventDefault()
-    deleteSlide()
-    return
-  }
-}
-onMounted(() => {
-  document.addEventListener('keydown', onKeyDown)
-  ro = new ResizeObserver(updateScale)
-  nextTick(() => {
-    if (canvasWrapRef.value) {
-      ro.observe(canvasWrapRef.value)
-      updateScale()
-    }
-  })
-})
-watch(canvasWrapRef, (el) => {
-  if (el) {
-    if (ro) ro.observe(el)
-    updateScale()
-  }
-})
-onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydown', onKeyDown) })
-
-// Element selection
-const selectedElStyles = ref(null)
-let selectedDomEl = null
-const SVG_TAGS = ['path','rect','ellipse','circle','polygon','polyline','line']
-function parseSvgFill(el) {
-  const raw = el.getAttribute('fill') || ''
-  if (!raw.startsWith('url(')) return raw
-  const id = raw.match(/url\(#(.+?)\)/)?.[1]
-  if (!id) return '#000000'
-  const grad = el.closest('svg')?.querySelector(`#${id}`)
-  if (!grad) return '#000000'
-  const stop = grad.querySelector('stop')
-  const c = stop?.getAttribute('stop-color') || stop?.style?.stopColor || '#000000'
-  return c.startsWith('#') ? c : '#000000'
-}
-function isSvgShape(el) { return SVG_TAGS.includes(el?.tagName?.toLowerCase()) }
-function onSelectElement(el) {
-  selectedDomEl = el
-  if (!el) { selectedElStyles.value = null; return }
-  const cs = getComputedStyle(el)
-  const isSvg = isSvgShape(el)
-  selectedElStyles.value = {
-    tagName: el.tagName.toLowerCase(),
-    isSvg,
-    svgFill: isSvg ? parseSvgFill(el) : '',
-    svgStroke: isSvg ? (el.getAttribute('stroke') || '') : '',
-    svgStrokeWidth: isSvg ? (el.getAttribute('stroke-width') || '') : '',
-    left: el.style?.left || cs.left,
-    top: el.style?.top || cs.top,
-    width: el.style?.width || cs.width,
-    height: el.style?.height || cs.height,
-    fontFamily: cs.fontFamily,
-    fontSize: cs.fontSize,
-    lineHeight: cs.lineHeight,
-    fontWeight: cs.fontWeight,
-    fontStyle: cs.fontStyle,
-    textDecoration: cs.textDecoration,
-    textAlign: cs.textAlign,
-    color: cs.color,
-    backgroundColor: cs.backgroundColor,
-    opacity: cs.opacity,
-    borderRadius: cs.borderRadius,
-    border: el.style?.border || cs.border,
-    boxShadow: el.style?.boxShadow || cs.boxShadow,
-    padding: el.style?.padding || cs.padding
-  }
-}
 function getCanvasApi() {
   const root = document.querySelector('.html-canvas-root')
-  if (root && root.__api) return root.__api
-  // DOM fallback: directly operate on .slide-render
+  if (root?.__api) return root.__api
   const slideRender = document.querySelector('.slide-render')
   if (slideRender) {
     return {
       insertHtml(html) {
         slideRender.insertAdjacentHTML('beforeend', html)
-        if (currentSlide.value) {
-          currentSlide.value.innerHTML = slideRender.innerHTML
-        }
+        if (currentSlide.value) currentSlide.value.innerHTML = slideRender.innerHTML
       },
-      pushHistory() {},
-      undo() {},
-      redo() {}
+      pushHistory() {}, undo() {}, redo() {}
     }
   }
   return null
 }
-function onApplyStyle(payload) {
-  console.log('[onApplyStyle]', payload, 'selectedDomEl:', selectedDomEl)
-  window.__lastApply = { payload, hasEl: !!selectedDomEl, time: Date.now() }
-  if (!selectedDomEl) return
-  const { prop, value } = payload
-  // SVG attribute handling
-  if (['svgFill','svgStroke','svgStrokeWidth'].includes(prop)) {
-    const attrMap = { svgFill: 'fill', svgStroke: 'stroke', svgStrokeWidth: 'stroke-width' }
-    selectedDomEl.setAttribute(attrMap[prop], value)
-    onSelectElement(selectedDomEl)
-    syncDomToSlides()
-    return
-  }
-  let finalValue = value
-  // Ensure numeric-only fontSize gets 'px' suffix
-  if (prop === 'fontSize' && /^\d+(\.\d+)?$/.test(value)) {
-    finalValue = value + 'px'
-  }
-  selectedDomEl.style[prop] = finalValue
-  // For color/font props, also apply to all children that have inline overrides
-  const inheritProps = ['color', 'backgroundColor', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign', 'fontStyle', 'textDecoration']
-  if (inheritProps.includes(prop)) {
-    selectedDomEl.querySelectorAll('*').forEach(child => {
-      if (child.style[prop]) {
-        child.style[prop] = finalValue
-      }
-    })
-  }
-  // Refresh the style panel to reflect the change
-  onSelectElement(selectedDomEl)
-  // Trigger save
+
+const { selectedElStyles, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides } = useElementStyle(currentSlide, getCanvasApi)
+const { insertTextBox, insertLatex, handleImageUpload, handleVideoUpload } = useInsert(getCanvasApi)
+
+function onFlattenChildren() {
+  const el = getSelectedDomEl()
+  if (!el || !el.children.length) return
+  const rect = el.getBoundingClientRect()
+  const parentRect = el.offsetParent?.getBoundingClientRect() || rect
+  Array.from(el.children).forEach(child => {
+    const cr = child.getBoundingClientRect()
+    child.style.position = 'absolute'
+    child.style.left = (cr.left - parentRect.left) + 'px'
+    child.style.top = (cr.top - parentRect.top) + 'px'
+    child.style.width = cr.width + 'px'
+  })
   syncDomToSlides()
-  const api = getCanvasApi()
-  if (api && api.pushHistory) api.pushHistory()
 }
-function syncDomToSlides() {
-  const render = document.querySelector('.slide-render')
-  if (render && currentSlide.value) {
-    currentSlide.value.innerHTML = render.innerHTML
-  }
-}
-function onCloneBefore() {
-  if (!selectedDomEl) return
-  const clone = selectedDomEl.cloneNode(true)
-  selectedDomEl.before(clone)
-  const api = getCanvasApi()
-  if (api && api.pushHistory) api.pushHistory()
-  syncDomToSlides()
-  onSelectElement(clone)
-}
-function onCloneAfter() {
-  if (!selectedDomEl) return
-  const clone = selectedDomEl.cloneNode(true)
-  selectedDomEl.after(clone)
-  const api = getCanvasApi()
-  if (api && api.pushHistory) api.pushHistory()
-  syncDomToSlides()
-  onSelectElement(clone)
-}
-function onDeleteEl() {
-  if (!selectedDomEl) return
-  const next = selectedDomEl.nextElementSibling || selectedDomEl.previousElementSibling
-  selectedDomEl.remove()
-  const api = getCanvasApi()
-  if (api && api.pushHistory) api.pushHistory()
-  syncDomToSlides()
-  if (next) onSelectElement(next)
-  else { selectedDomEl = null; selectedElStyles.value = null }
-}
+
 function onUpdateHtml(html) {
   if (currentSlide.value) {
     currentSlide.value.innerHTML = html
-    if (currentSlide.value.blocks && currentSlide.value.blocks[0]) {
-      currentSlide.value.blocks[0].content = html
-    }
+    if (currentSlide.value.blocks?.[0]) currentSlide.value.blocks[0].content = html
   }
 }
 
@@ -428,7 +200,6 @@ const showShapeMenu = ref(false)
 const selectedShapeId = ref(null)
 const shapeDrag = ref(null)
 const shapeResize = ref(null)
-
 const currentShapes = computed(() => currentSlide.value?.shapes || [])
 
 function insertShape(type) {
@@ -436,27 +207,6 @@ function insertShape(type) {
   currentSlide.value.shapes.push(createShape(type, 100 + Math.random()*200, 100 + Math.random()*200))
   showShapeMenu.value = false
 }
-
-function insertTextBox() {
-  const html = `<div style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px;cursor:move;">双击编辑文本</div>`
-  const api = getCanvasApi()
-  if (api && api.insertHtml) api.insertHtml(html)
-}
-
-function insertLatex() {
-  const latex = prompt('输入 LaTeX 公式：', 'E = mc^2')
-  if (!latex) return
-  let rendered = ''
-  try {
-    rendered = window.katex.renderToString(latex, { throwOnError: false, displayMode: true })
-  } catch (e) {
-    rendered = `<span style="color:red;">公式错误: ${e.message}</span>`
-  }
-  const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;padding:16px 24px;background:rgba(255,255,255,0.95);border-radius:6px;cursor:move;font-size:24px;">${rendered}</div>`
-  const api = getCanvasApi()
-  if (api && api.insertHtml) api.insertHtml(html)
-}
-
 function onShapeDrag(e, shape) {
   selectedShapeId.value = shape.id
   shapeDrag.value = { shape, startX: e.clientX - shape.x, startY: e.clientY - shape.y }
@@ -467,56 +217,18 @@ function onShapeResize(e, shape) {
 function onShapeMove(e) {
   if (shapeDrag.value) {
     const { shape, startX, startY } = shapeDrag.value
-    shape.x = Math.round(e.clientX - startX)
-    shape.y = Math.round(e.clientY - startY)
+    shape.x = Math.round(e.clientX - startX); shape.y = Math.round(e.clientY - startY)
   }
   if (shapeResize.value) {
     const { shape, startX, startY, startW, startH } = shapeResize.value
-    shape.w = Math.max(20, startW + (e.clientX - startX))
-    shape.h = Math.max(20, startH + (e.clientY - startY))
+    shape.w = Math.max(20, startW + (e.clientX - startX)); shape.h = Math.max(20, startH + (e.clientY - startY))
   }
 }
-function onShapeUp() {
-  shapeDrag.value = null
-  shapeResize.value = null
-}
-
-// Image upload - free positioning
-function handleImageUpload(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = (ev) => {
-    const img = `<img src="${ev.target.result}" style="position:absolute;left:100px;top:100px;width:300px;cursor:move;z-index:10;user-select:none;" class="free-img" />`
-    const api = getCanvasApi()
-    if (api && api.insertHtml) {
-      api.insertHtml(img)
-    }
-  }
-  reader.readAsDataURL(file)
-  e.target.value = ''
-}
-
-// Video upload - free positioning (use createObjectURL for large files)
-function handleVideoUpload(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  const url = URL.createObjectURL(file)
-  const video = `<video src="${url}" controls style="position:absolute;left:80px;top:80px;width:480px;cursor:move;z-index:10;user-select:none;border-radius:8px;" class="free-video"></video>`
-  const api = getCanvasApi()
-  if (api && api.insertHtml) {
-    api.insertHtml(video)
-  }
-  e.target.value = ''
-}
+function onShapeUp() { shapeDrag.value = null; shapeResize.value = null }
 
 function unlockFreeLayout() {
   const api = getCanvasApi()
-  if (api && api.unlockFreeLayout) {
-    api.unlockFreeLayout()
-    return
-  }
-  // DOM fallback
+  if (api?.unlockFreeLayout) { api.unlockFreeLayout(); return }
   const render = document.querySelector('.slide-render')
   if (!render) return
   const sg = render.querySelector('.sg')
@@ -530,9 +242,27 @@ function unlockFreeLayout() {
   })
 }
 
-function thumbStyle(s) {
-  return s.slideStyle || 'background: #f0f4f8;'
+function thumbStyle(s) { return s.slideStyle || 'background: #f0f4f8;' }
+
+// Keyboard shortcuts
+function onKeyDown(e) {
+  if (e.target.isContentEditable) return
+  if (e.key === 'F5') { e.preventDefault(); startPresentation(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveToFile(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); addSlide(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); duplicateSlide(); return }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !getSelectedDomEl() && slides.value.length > 1) { e.preventDefault(); deleteSlide() }
 }
+
+// Lifecycle
+let ro = null
+onMounted(() => {
+  document.addEventListener('keydown', onKeyDown)
+  ro = new ResizeObserver(updateScale)
+  nextTick(() => { if (canvasWrapRef.value) { ro.observe(canvasWrapRef.value); updateScale() } })
+})
+watch(canvasWrapRef, (el) => { if (el) { if (ro) ro.observe(el); updateScale() } })
+onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydown', onKeyDown) })
 </script>
 
 <style>
