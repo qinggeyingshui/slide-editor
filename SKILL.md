@@ -441,3 +441,61 @@ export const extendedThemes = {
 ---
 
 *本Skill整合自：frontend-slides(15.5k⭐) · 歸藏PPT(1万⭐) · 破壁editable(733赞) · PPT Master · 米小哇 · openrange7 · Slidev派 等顶级PPT Agent Skill的设计精华。*
+
+---
+
+## 十、图标与SVG素材使用规范
+
+### 10.1 图标来源（推荐 Tabler Icons）
+
+生成PPT时如需图标，使用内联SVG。推荐 Tabler Icons 风格（线性、2px笔画、24x24基准）。
+
+```html
+<!-- 图标插入方式：内联SVG，用accent色 -->
+<div style="position:absolute; left:100px; top:200px; width:48px; height:48px;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="{accent}" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
+    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+    <path d="M2 17l10 5 10-5"/>
+    <path d="M2 12l10 5 10-5"/>
+  </svg>
+</div>
+```
+
+### 10.2 图标使用原则
+
+| 规则 | 说明 |
+|---|---|
+| **尺寸** | 装饰用 32-48px，功能图标 20-24px，大视觉锤 64-96px |
+| **颜色** | 只用 accent/accent2/ink，不自创颜色 |
+| **笔画** | 统一 stroke-width:2，不混用粗细 |
+| **数量** | 每页最多 3-4 个图标，不堆砌 |
+| **语义** | 图标必须与内容相关，不做纯装饰 |
+| **风格统一** | 全套PPT只用一种图标风格（线性 OR 填充，不混用） |
+
+### 10.3 常用语义图标速查
+
+```
+安全/盾牌: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+成功/对勾: <path d="M20 6L9 17l-5-5"/>
+警告/三角: <path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+流程/箭头: <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+数据/图表: <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+用户/人物: <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+设置/齿轮: <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l..."/>
+```
+
+### 10.4 主题配色速查（themes.js 10套）
+
+| 主题 | 适用场景 | 特点 |
+|---|---|---|
+| memphis | 活泼/创意/年轻 | 高饱和撞色 |
+| ocean | 商务/科技 | 蓝色系冷静 |
+| forest | 环保/自然/健康 | 绿色系沉稳 |
+| midnight | 科技/暗色演讲 | 深色+霓虹accent |
+| catppuccinLatte | 温暖/日常/教育 | 柔和暖白底 |
+| catppuccinMocha | 深色/开发者/技术 | 柔和深色底 |
+| nord | 极简/北欧/学术 | 冷色极简16色 |
+| nordAurora | 数据/可视化 | Nord+彩色accent |
+| academic | 学术/论文/严肃 | 黑白红经典 |
+| corporate | 商务/汇报/正式 | 蓝绿橙专业 |

@@ -55,6 +55,24 @@
         <input type="range" min="0" max="100" :value="(selectedShapeObj.opacity||1)*100" @input="$emit('setShapeProp','opacity',$event.target.value/100)">
       </div>
     </template>
+    <template v-if="selectedElStyles?.isSvg">
+      <hr>
+      <h3>SVG 颜色</h3>
+      <div class="prop-group">
+        <label>填充</label>
+        <input type="color" :value="selectedElStyles.svgFill||'#000000'" @input="$emit('applyStyle',{prop:'svgFill',value:$event.target.value})">
+        <label class="no-fill"><input type="checkbox" :checked="selectedElStyles.svgFill==='none'" @change="$emit('applyStyle',{prop:'svgFill',value:$event.target.checked?'none':'#000000'})">无</label>
+      </div>
+      <div class="prop-group">
+        <label>描边</label>
+        <input type="color" :value="selectedElStyles.svgStroke||'#000000'" @input="$emit('applyStyle',{prop:'svgStroke',value:$event.target.value})">
+      </div>
+      <div class="prop-group">
+        <label>线宽</label>
+        <input type="range" min="0" max="20" step="0.5" :value="selectedElStyles.svgStrokeWidth||1" @input="$emit('applyStyle',{prop:'svgStrokeWidth',value:$event.target.value})">
+        <span>{{ selectedElStyles.svgStrokeWidth||1 }}</span>
+      </div>
+    </template>
     <hr>
     <h3>主题</h3>
     <div class="theme-btns">

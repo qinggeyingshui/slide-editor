@@ -1,6 +1,9 @@
 <template>
+  <!-- Presenter Mode Overlay -->
+  <PresenterMode v-if="presenterMode" :slides="slides" :startIndex="currentIndex"
+    @exit="exitPresentation" />
   <!-- Editor View (direct mode) -->
-  <div class="editor">
+  <div class="editor" v-show="!presenterMode">
     <div class="toolbar">
       <div class="toolbar-left">
         <span class="app-title">Slide Editor</span>
@@ -28,6 +31,15 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M8 4v9M5.5 13h5"/></svg>
           文本
         </button>
+        <button @click="insertLatex">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-8h1l3 8M3.5 8.5h4M11 4v8M13 4l-2 4 2 4"/></svg>
+          公式
+        </button>
+        <label class="tb-upload-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="6,3 13,8 6,13"/><line x1="3" y1="3" x2="3" y2="13"/></svg>
+          视频
+          <input type="file" accept="video/*" hidden @change="handleVideoUpload" />
+        </label>
         <span class="tb-sep"></span>
         <button @click="saveToFile" title="Ctrl+S">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.5 14.5h-9a1 1 0 01-1-1v-11a1 1 0 011-1h7l3 3v9a1 1 0 01-1 1z"/><path d="M5.5 14.5v-4h5v4"/><path d="M5.5 1.5v3h4"/></svg>
@@ -41,6 +53,10 @@
         <span v-if="saveStatus" class="save-status">{{ saveStatus }}</span>
       </div>
       <div class="toolbar-right">
+        <button class="present-btn" @click="startPresentation" title="演示模式 (F5)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5,3 13,8 5,13"/></svg>
+          演示
+        </button>
         <span class="page-info">{{ currentIndex + 1 }} / {{ slides.length }}</span>
       </div>
     </div>
@@ -88,13 +104,9 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import HtmlCanvas from './components/HtmlCanvas.vue'
 import ShapeLayer from './components/ShapeLayer.vue'
 import FloatingToolbar from './components/FloatingToolbar.vue'
-import { presentationSlides, presentationCSS } from './model/presentationData.js'
+import PresenterMode from './components/PresenterMode.vue'
+import { slides as presentationSlides, presentationCSS } from './model/presentationData.js'
 import { createShape } from './model/types.js'
-
-// Inject presentation CSS
-const styleEl = document.createElement('style')
-styleEl.textContent = presentationCSS
-document.head.appendChild(styleEl)
 
 // Load slides: always from presentationData
 function loadSlides() {
@@ -103,12 +115,20 @@ function loadSlides() {
 
 // Save to source file via Vite middleware
 const saveStatus = ref('')
+const presenterMode = ref(false)
+
+function startPresentation() {
+  presenterMode.value = true
+}
+function exitPresentation() {
+  presenterMode.value = false
+}
 async function saveToFile() {
   try {
     const res = await fetch('/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slides: slides.value, css: presentationCSS })
+      body: JSON.stringify({ slides: slides.value })
     })
     const data = await res.json()
     if (data.ok) {
@@ -187,6 +207,12 @@ let ro = null
 function onKeyDown(e) {
   // Don't intercept when editing text
   if (e.target.isContentEditable) return
+  // F5 → presentation mode
+  if (e.key === 'F5') {
+    e.preventDefault()
+    startPresentation()
+    return
+  }
   // Ctrl+S → save to file
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault()
@@ -233,16 +259,23 @@ onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydo
 // Element selection
 const selectedElStyles = ref(null)
 let selectedDomEl = null
+const SVG_TAGS = ['path','rect','ellipse','circle','polygon','polyline','line']
+function isSvgShape(el) { return SVG_TAGS.includes(el?.tagName?.toLowerCase()) }
 function onSelectElement(el) {
   selectedDomEl = el
   if (!el) { selectedElStyles.value = null; return }
   const cs = getComputedStyle(el)
+  const isSvg = isSvgShape(el)
   selectedElStyles.value = {
     tagName: el.tagName.toLowerCase(),
-    left: el.style.left || cs.left,
-    top: el.style.top || cs.top,
-    width: el.style.width || cs.width,
-    height: el.style.height || cs.height,
+    isSvg,
+    svgFill: isSvg ? (el.getAttribute('fill') || '') : '',
+    svgStroke: isSvg ? (el.getAttribute('stroke') || '') : '',
+    svgStrokeWidth: isSvg ? (el.getAttribute('stroke-width') || '') : '',
+    left: el.style?.left || cs.left,
+    top: el.style?.top || cs.top,
+    width: el.style?.width || cs.width,
+    height: el.style?.height || cs.height,
     fontFamily: cs.fontFamily,
     fontSize: cs.fontSize,
     lineHeight: cs.lineHeight,
@@ -254,20 +287,44 @@ function onSelectElement(el) {
     backgroundColor: cs.backgroundColor,
     opacity: cs.opacity,
     borderRadius: cs.borderRadius,
-    border: el.style.border || cs.border,
-    boxShadow: el.style.boxShadow || cs.boxShadow,
-    padding: el.style.padding || cs.padding
+    border: el.style?.border || cs.border,
+    boxShadow: el.style?.boxShadow || cs.boxShadow,
+    padding: el.style?.padding || cs.padding
   }
 }
 function getCanvasApi() {
   const root = document.querySelector('.html-canvas-root')
-  return root && root.__api
+  if (root && root.__api) return root.__api
+  // DOM fallback: directly operate on .slide-render
+  const slideRender = document.querySelector('.slide-render')
+  if (slideRender) {
+    return {
+      insertHtml(html) {
+        slideRender.insertAdjacentHTML('beforeend', html)
+        if (currentSlide.value) {
+          currentSlide.value.innerHTML = slideRender.innerHTML
+        }
+      },
+      pushHistory() {},
+      undo() {},
+      redo() {}
+    }
+  }
+  return null
 }
 function onApplyStyle(payload) {
   console.log('[onApplyStyle]', payload, 'selectedDomEl:', selectedDomEl)
   window.__lastApply = { payload, hasEl: !!selectedDomEl, time: Date.now() }
   if (!selectedDomEl) return
   const { prop, value } = payload
+  // SVG attribute handling
+  if (['svgFill','svgStroke','svgStrokeWidth'].includes(prop)) {
+    const attrMap = { svgFill: 'fill', svgStroke: 'stroke', svgStrokeWidth: 'stroke-width' }
+    selectedDomEl.setAttribute(attrMap[prop], value)
+    onSelectElement(selectedDomEl)
+    syncDomToSlides()
+    return
+  }
   let finalValue = value
   // Ensure numeric-only fontSize gets 'px' suffix
   if (prop === 'fontSize' && /^\d+(\.\d+)?$/.test(value)) {
@@ -371,6 +428,20 @@ function insertTextBox() {
   if (api && api.insertHtml) api.insertHtml(html)
 }
 
+function insertLatex() {
+  const latex = prompt('输入 LaTeX 公式：', 'E = mc^2')
+  if (!latex) return
+  let rendered = ''
+  try {
+    rendered = window.katex.renderToString(latex, { throwOnError: false, displayMode: true })
+  } catch (e) {
+    rendered = `<span style="color:red;">公式错误: ${e.message}</span>`
+  }
+  const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;padding:16px 24px;background:rgba(255,255,255,0.95);border-radius:6px;cursor:move;font-size:24px;">${rendered}</div>`
+  const api = getCanvasApi()
+  if (api && api.insertHtml) api.insertHtml(html)
+}
+
 function onShapeDrag(e, shape) {
   selectedShapeId.value = shape.id
   shapeDrag.value = { shape, startX: e.clientX - shape.x, startY: e.clientY - shape.y }
@@ -408,6 +479,19 @@ function handleImageUpload(e) {
     }
   }
   reader.readAsDataURL(file)
+  e.target.value = ''
+}
+
+// Video upload - free positioning (use createObjectURL for large files)
+function handleVideoUpload(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  const url = URL.createObjectURL(file)
+  const video = `<video src="${url}" controls style="position:absolute;left:80px;top:80px;width:480px;cursor:move;z-index:10;user-select:none;border-radius:8px;" class="free-video"></video>`
+  const api = getCanvasApi()
+  if (api && api.insertHtml) {
+    api.insertHtml(video)
+  }
   e.target.value = ''
 }
 

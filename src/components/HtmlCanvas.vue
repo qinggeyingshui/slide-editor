@@ -12,13 +12,18 @@
         @mousedown.stop.prevent="onResizeStart($event, h.dir)">
       </div>
     </template>
+    <!-- Rotation handle -->
+    <div v-if="rotateHandle" class="rotate-handle"
+      :style="{ left: rotateHandle.x+'px', top: rotateHandle.y+'px' }"
+      @mousedown.stop.prevent="onRotateStart($event)">
+    </div>
     <!-- Alignment guides -->
     <div v-for="(g, i) in guides" :key="'g'+i" class="align-guide" :style="g"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({ slide: Object })
 const emit = defineEmits(['select-element', 'update-html'])
@@ -28,6 +33,7 @@ const slideRef = ref(null)
 const selectedEls = ref([])  // multi-select
 const outlineStyles = ref([])
 const resizeHandles = ref([])
+const rotateHandle = ref(null)
 const guides = ref([])
 const marquee = ref(null) // { startX, startY, x, y, w, h }
 const marqueeStyle = computed(() => {
@@ -53,7 +59,7 @@ const MAX_HISTORY = 50
 
 const slideStyle = computed(() => {
   const s = props.slide?.slideStyle || ''
-  return s + '; width:1280px; height:720px; position:relative; overflow:hidden;'
+  return s + '; width:960px; height:540px; position:relative; overflow:hidden;'
 })
 
 function renderSlide() {
@@ -73,8 +79,15 @@ onMounted(() => {
   renderSlide()
   document.addEventListener('paste', onPaste)
   document.addEventListener('keydown', onKeyDown)
-  // Expose API on DOM element for parent access (workaround for ref=null HMR bug)
+  // Expose API on DOM element for parent access
   if (rootRef.value) {
+    rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory }
+  }
+})
+
+// Ensure __api is always bound (survives HMR)
+watchEffect(() => {
+  if (rootRef.value && !rootRef.value.__api) {
     rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory }
   }
 })
@@ -200,7 +213,7 @@ function onPaste(e) {
 // --- Group / Ungroup ---
 function groupSelected() {
   if (selectedEls.value.length < 2) return
-  const scale = slideRef.value.getBoundingClientRect().width / 1280
+  const scale = slideRef.value.getBoundingClientRect().width / 960
   // Calculate bounding box of all selected elements
   let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity
   for (const el of selectedEls.value) {
@@ -266,7 +279,7 @@ function enterGroup(groupEl) {
   deselectAllKeepGroup()
   // Convert group children to absolute for free dragging
   const sr = slideRef.value.getBoundingClientRect()
-  const scale = sr.width / 1280
+  const scale = sr.width / 960
   const children = Array.from(groupEl.children).filter(c => c.tagName !== 'STYLE')
   const positions = children.map(el => {
     const r = el.getBoundingClientRect()
@@ -298,7 +311,7 @@ function selectElement(el) {
 
 function updateOutlines() {
   if (!slideRef.value) { outlineStyles.value = []; resizeHandles.value = []; return }
-  const scale = slideRef.value.getBoundingClientRect().width / 1280
+  const scale = slideRef.value.getBoundingClientRect().width / 960
   outlineStyles.value = selectedEls.value.map(el => {
     const r = el.getBoundingClientRect()
     const sr = slideRef.value.getBoundingClientRect()
@@ -327,15 +340,18 @@ function updateOutlines() {
       { x: x - hs, y: y + h - hs, dir: 'sw', cursor: 'sw' },
       { x: x - hs, y: y + h/2 - hs, dir: 'w', cursor: 'w' },
     ]
+    // Rotation handle: above top-center
+    rotateHandle.value = { x: x + w/2 - 5, y: y - 30 }
   } else {
     resizeHandles.value = []
+    rotateHandle.value = null
   }
 }
 
 function onResizeStart(e, dir) {
   if (selectedEls.value.length !== 1) return
   const el = selectedEls.value[0]
-  const scale = slideRef.value.getBoundingClientRect().width / 1280
+  const scale = slideRef.value.getBoundingClientRect().width / 960
   const startX = e.clientX, startY = e.clientY
   const origL = parseInt(el.style.left)||0, origT = parseInt(el.style.top)||0
   const origW = parseInt(el.style.width)||el.offsetWidth/scale
@@ -350,26 +366,11 @@ function onResizeStart(e, dir) {
     let nl = origL, nt = origT, nw = origW, nh = origH
 
     if (isCorner) {
-      // Proportional resize from corners
-      if (dir === 'se') {
-        nw = Math.max(20, origW + dx)
-        nh = nw / aspect
-      } else if (dir === 'ne') {
-        nw = Math.max(20, origW + dx)
-        nh = nw / aspect
-        nt = origT + (origH - nh)
-      } else if (dir === 'sw') {
-        nw = Math.max(20, origW - dx)
-        nh = nw / aspect
-        nl = origL + (origW - nw)
-      } else if (dir === 'nw') {
-        nw = Math.max(20, origW - dx)
-        nh = nw / aspect
-        nl = origL + (origW - nw)
-        nt = origT + (origH - nh)
-      }
+      if (dir === 'se') { nw = Math.max(20, origW + dx); nh = nw / aspect }
+      else if (dir === 'ne') { nw = Math.max(20, origW + dx); nh = nw / aspect; nt = origT + (origH - nh) }
+      else if (dir === 'sw') { nw = Math.max(20, origW - dx); nh = nw / aspect; nl = origL + (origW - nw) }
+      else if (dir === 'nw') { nw = Math.max(20, origW - dx); nh = nw / aspect; nl = origL + (origW - nw); nt = origT + (origH - nh) }
     } else {
-      // Free resize from edges
       if (dir === 'e') nw = Math.max(20, origW + dx)
       if (dir === 'w') { nw = Math.max(20, origW - dx); nl = origL + dx }
       if (dir === 's') nh = Math.max(20, origH + dy)
@@ -391,14 +392,40 @@ function onResizeStart(e, dir) {
   document.addEventListener('mouseup', onUp)
 }
 
+function onRotateStart(e) {
+  if (selectedEls.value.length !== 1) return
+  const el = selectedEls.value[0]
+  const rect = el.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx)
+  const current = parseFloat(el.dataset.rotation) || 0
+
+  function onMove(ev) {
+    const angle = Math.atan2(ev.clientY - cy, ev.clientX - cx)
+    let deg = current + (angle - startAngle) * 180 / Math.PI
+    if (ev.shiftKey) deg = Math.round(deg / 15) * 15
+    el.style.transform = `rotate(${deg}deg)`
+    el.dataset.rotation = deg
+    updateOutlines()
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    pushHistory(); saveHtml()
+  }
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
+
 function computeGuides(activeEl, ax, ay, aw, ah) {
   const SNAP = 5
   const newGuides = []
   const acx = ax + aw/2, acy = ay + ah/2
   const ar = ax + aw, ab = ay + ah
   // Slide center guides
-  if (Math.abs(acx - 640) < SNAP) newGuides.push({ left:'640px', top:'0', width:'1px', height:'720px', background:'#e91e63' })
-  if (Math.abs(acy - 360) < SNAP) newGuides.push({ left:'0', top:'360px', width:'1280px', height:'1px', background:'#e91e63' })
+  if (Math.abs(acx - 480) < SNAP) newGuides.push({ left:'480px', top:'0', width:'1px', height:'540px', background:'#e91e63' })
+  if (Math.abs(acy - 270) < SNAP) newGuides.push({ left:'0', top:'270px', width:'960px', height:'1px', background:'#e91e63' })
   // Compare with siblings
   const siblings = Array.from(slideRef.value.children).filter(c => c !== activeEl && c.style.position === 'absolute')
   for (const sib of siblings) {
@@ -406,13 +433,13 @@ function computeGuides(activeEl, ax, ay, aw, ah) {
     const sw = parseInt(sib.style.width)||sib.offsetWidth, sh = parseInt(sib.style.height)||sib.offsetHeight
     const scx = sl + sw/2, scy = st + sh/2
     // Vertical alignment
-    if (Math.abs(ax - sl) < SNAP) newGuides.push({ left:sl+'px', top:'0', width:'1px', height:'720px', background:'#2196f3' })
-    if (Math.abs(ar - (sl+sw)) < SNAP) newGuides.push({ left:(sl+sw)+'px', top:'0', width:'1px', height:'720px', background:'#2196f3' })
-    if (Math.abs(acx - scx) < SNAP) newGuides.push({ left:scx+'px', top:'0', width:'1px', height:'720px', background:'#2196f3' })
+    if (Math.abs(ax - sl) < SNAP) newGuides.push({ left:sl+'px', top:'0', width:'1px', height:'540px', background:'#2196f3' })
+    if (Math.abs(ar - (sl+sw)) < SNAP) newGuides.push({ left:(sl+sw)+'px', top:'0', width:'1px', height:'540px', background:'#2196f3' })
+    if (Math.abs(acx - scx) < SNAP) newGuides.push({ left:scx+'px', top:'0', width:'1px', height:'540px', background:'#2196f3' })
     // Horizontal alignment
-    if (Math.abs(ay - st) < SNAP) newGuides.push({ left:'0', top:st+'px', width:'1280px', height:'1px', background:'#2196f3' })
-    if (Math.abs(ab - (st+sh)) < SNAP) newGuides.push({ left:'0', top:(st+sh)+'px', width:'1280px', height:'1px', background:'#2196f3' })
-    if (Math.abs(acy - scy) < SNAP) newGuides.push({ left:'0', top:scy+'px', width:'1280px', height:'1px', background:'#2196f3' })
+    if (Math.abs(ay - st) < SNAP) newGuides.push({ left:'0', top:st+'px', width:'960px', height:'1px', background:'#2196f3' })
+    if (Math.abs(ab - (st+sh)) < SNAP) newGuides.push({ left:'0', top:(st+sh)+'px', width:'960px', height:'1px', background:'#2196f3' })
+    if (Math.abs(acy - scy) < SNAP) newGuides.push({ left:'0', top:scy+'px', width:'960px', height:'1px', background:'#2196f3' })
   }
   guides.value = newGuides.slice(0, 6) // limit to avoid clutter
 }
@@ -421,7 +448,7 @@ function computeGuides(activeEl, ax, ay, aw, ah) {
 function startMarquee(e) {
   deselectAll()
   const sr = slideRef.value.getBoundingClientRect()
-  const scale = sr.width / 1280
+  const scale = sr.width / 960
   const startX = (e.clientX - sr.left) / scale
   const startY = (e.clientY - sr.top) / scale
   marquee.value = { startX, startY, x: startX, y: startY, w: 0, h: 0 }
@@ -475,13 +502,17 @@ function onMouseDown(e) {
   // "Deep select": if clicking inside the currently selected element,
   // select the clicked child directly (don't bubble up to top-level absolute)
   // Skip deep-select when shift is held (multi-select mode)
+  const SVG_SHAPE_TAGS = ['path','rect','ellipse','circle','polygon','polyline','line']
   const currentSel = selectedEls.value[0]
   if (!e.shiftKey && currentSel && currentSel.contains(el) && el !== currentSel) {
-    // Use the direct click target (deepest element)
-    // But walk up to find a meaningful element (has siblings or is a direct child of currentSel)
+    // For SVG shape elements, select them directly (for color editing)
     let candidate = el
-    while (candidate.parentElement && candidate.parentElement !== currentSel) {
-      candidate = candidate.parentElement
+    if (SVG_SHAPE_TAGS.includes(el.tagName.toLowerCase())) {
+      candidate = el
+    } else {
+      while (candidate.parentElement && candidate.parentElement !== currentSel) {
+        candidate = candidate.parentElement
+      }
     }
     selectElement(candidate)
     emit('select-element', candidate)
@@ -512,7 +543,7 @@ function onMouseDown(e) {
   }
 
   // Drag
-  const scale = slideRef.value.getBoundingClientRect().width / 1280
+  const scale = slideRef.value.getBoundingClientRect().width / 960
   const startX = e.clientX, startY = e.clientY
 
   // Snapshot original positions
@@ -554,6 +585,24 @@ function onDblClick(e) {
   let el = e.target
   if (el === slideRef.value || el === rootRef.value) return
   if (el.tagName === 'IMG') return
+
+  // LaTeX block: double-click to edit formula
+  const latexEl = el.closest('.latex-block')
+  if (latexEl) {
+    const oldLatex = latexEl.getAttribute('data-latex') || ''
+    const newLatex = prompt('编辑 LaTeX 公式：', oldLatex)
+    if (newLatex !== null && newLatex !== oldLatex) {
+      try {
+        latexEl.innerHTML = window.katex.renderToString(newLatex, { throwOnError: false, displayMode: true })
+        latexEl.setAttribute('data-latex', newLatex)
+      } catch (err) {
+        latexEl.innerHTML = `<span style="color:red;">公式错误: ${err.message}</span>`
+      }
+      pushHistory()
+      saveHtml()
+    }
+    return
+  }
   
   // If element has no text content, skip
   if (!el.textContent.trim()) return
@@ -589,7 +638,7 @@ defineExpose({ insertHtml, undo, redo })
 </script>
 
 <style scoped>
-.html-canvas-root { position: relative; width: 1280px; height: 720px; }
+.html-canvas-root { position: relative; width: 960px; height: 540px; }
 .slide-render { width: 100%; height: 100%; position: relative; overflow: hidden; }
 .selection-outline {
   position: absolute; pointer-events: none;
@@ -608,6 +657,12 @@ defineExpose({ insertHtml, undo, redo })
   transform: scale(1.3);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+.rotate-handle {
+  position: absolute; width: 12px; height: 12px;
+  background: var(--color-surface); border: 2px solid var(--color-primary);
+  border-radius: 50%; z-index: 100; cursor: grab;
+}
+.rotate-handle:hover { background: var(--color-primary); }
 .rh-nw { cursor: nw-resize; }
 .rh-n { cursor: n-resize; }
 .rh-ne { cursor: ne-resize; }
