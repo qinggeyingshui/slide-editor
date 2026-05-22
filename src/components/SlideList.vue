@@ -23,10 +23,39 @@ defineEmits(['select'])
 </script>
 
 <style scoped>
-.slide-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; overflow-y: auto; }
-.thumb { cursor: pointer; border-radius: 6px; border: 2px solid transparent; transition: all .15s; }
-.thumb.active { border-color: #3b5fe0; box-shadow: 0 0 0 2px rgba(59,95,224,.2); }
-.thumb:hover:not(.active) { border-color: #ddd; }
-.thumb-inner { width: 100%; aspect-ratio: 16/9; border-radius: 4px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 4px; }
-.thumb-num { background: rgba(0,0,0,.5); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; }
+.slide-list {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; overflow-y: auto;
+}
+.slide-list::-webkit-scrollbar { width: 4px; }
+.slide-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+.thumb {
+  cursor: pointer; border-radius: var(--radius-md);
+  border: 2px solid transparent; padding: 6px;
+  transition: all var(--transition-fast);
+}
+.thumb:hover:not(.active) {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-alt);
+}
+.thumb.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.thumb-inner {
+  width: 100%; aspect-ratio: 16/9;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 6px; position: relative;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  transition: box-shadow var(--transition-fast);
+}
+.thumb:hover .thumb-inner { box-shadow: var(--shadow-sm); }
+.thumb-num {
+  background: rgba(15, 23, 42, 0.6); color: #fff;
+  font-size: 10px; font-weight: 600; padding: 2px 6px;
+  border-radius: 4px; backdrop-filter: blur(4px);
+}
 </style>

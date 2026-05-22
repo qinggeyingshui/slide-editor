@@ -593,13 +593,20 @@ defineExpose({ insertHtml, undo, redo })
 .slide-render { width: 100%; height: 100%; position: relative; overflow: hidden; }
 .selection-outline {
   position: absolute; pointer-events: none;
-  border: 2px solid #1a73e8; border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(26,115,232,0.3);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+  transition: box-shadow 0.15s ease;
 }
 .resize-handle {
   position: absolute; width: 10px; height: 10px;
-  background: #fff; border: 2px solid #1a73e8; border-radius: 2px;
-  z-index: 100;
+  background: var(--color-surface); border: 2px solid var(--color-primary);
+  border-radius: 3px; z-index: 100;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.resize-handle:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 .rh-nw { cursor: nw-resize; }
 .rh-n { cursor: n-resize; }
@@ -610,9 +617,13 @@ defineExpose({ insertHtml, undo, redo })
 .rh-sw { cursor: sw-resize; }
 .rh-w { cursor: w-resize; }
 .align-guide {
-  position: absolute; pointer-events: none; z-index: 99; opacity: 0.7;
+  position: absolute; pointer-events: none; z-index: 99;
+  opacity: 0.8; background: #ef4444;
 }
 .marquee-box {
   position: absolute; pointer-events: none; z-index: 98;
+  border: 1.5px dashed var(--color-primary);
+  background: rgba(37, 99, 235, 0.05);
+  border-radius: 2px;
 }
 </style>

@@ -112,45 +112,62 @@ function toHex(color) {
 <style scoped>
 .floating-toolbar {
   position: fixed;
-  top: 56px;
+  top: 64px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-  border: 1px solid #e0e0e0;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--color-border);
   white-space: nowrap;
+  animation: floatIn 0.2s ease-out;
 }
-.tb-sep { width: 1px; height: 20px; background: #e0e0e0; margin: 0 4px; }
+@keyframes floatIn { from { opacity: 0; transform: translateX(-50%) translateY(-6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.tb-sep { width: 1px; height: 20px; background: var(--color-border); margin: 0 4px; }
 .tb-btn {
-  border: none; background: none; cursor: pointer; padding: 4px 8px;
-  border-radius: 4px; font-size: 14px; color: #333; min-width: 28px;
+  border: none; background: none; cursor: pointer; padding: 6px 10px;
+  border-radius: var(--radius-sm); font-size: 14px;
+  color: var(--color-text-secondary); min-width: 30px;
+  transition: all var(--transition-fast);
 }
-.tb-btn:hover { background: #f0f0f0; }
-.tb-btn.active { background: #e3e8ff; color: #4a6cf7; }
-.tb-delete { color: #e53935; }
-.tb-delete:hover { background: #fdecea; }
+.tb-btn:hover { background: var(--color-surface-alt); color: var(--color-text-primary); transform: scale(1.05); }
+.tb-btn:active { transform: scale(0.95); }
+.tb-btn.active { background: var(--color-primary-light); color: var(--color-primary); }
+.tb-delete { color: var(--color-danger); }
+.tb-delete:hover { background: var(--color-danger-light); color: var(--color-danger); }
 .tb-select {
-  border: 1px solid #ddd; border-radius: 4px; padding: 3px 6px;
-  font-size: 12px; background: #fff; cursor: pointer; outline: none;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 4px 8px; font-size: 12px; background: var(--color-surface);
+  cursor: pointer; outline: none; color: var(--color-text-secondary);
+  transition: border-color var(--transition-fast);
 }
-.font-select { width: 100px; }
-.tb-input { border: 1px solid #ddd; border-radius: 4px; padding: 3px 6px; font-size: 12px; outline: none; }
-.size-input { width: 48px; text-align: center; }
-.opacity-input { width: 60px; accent-color: #4a6cf7; border: none; }
+.tb-select:hover { border-color: var(--color-border-hover); }
+.tb-select:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+.font-select { width: 110px; }
+.tb-input {
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 4px 8px; font-size: 12px; outline: none;
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+.tb-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+.size-input { width: 50px; text-align: center; }
+.opacity-input { width: 64px; accent-color: var(--color-primary); border: none; cursor: pointer; }
 .tb-color-wrap {
   display: flex; flex-direction: column; align-items: center; cursor: pointer;
-  position: relative; padding: 2px 4px;
+  position: relative; padding: 3px 6px; border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
+.tb-color-wrap:hover { background: var(--color-surface-alt); }
 .tb-color-wrap input[type="color"] {
   position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
   width: 0; height: 0; padding: 0; border: none; opacity: 0; cursor: pointer;
 }
-.color-label { font-size: 14px; font-weight: 700; line-height: 1; }
-.color-indicator { width: 16px; height: 3px; border-radius: 1px; margin-top: 1px; }
+.color-label { font-size: 14px; font-weight: 700; line-height: 1; color: var(--color-text-primary); }
+.color-indicator { width: 18px; height: 3px; border-radius: 2px; margin-top: 2px; }
 </style>
