@@ -611,3 +611,27 @@ Agent 生成时按以下优先级自动选择 layout：
 - 编辑器侧边栏显示布局类型图标
 - 未来支持"切换布局"功能（重新排列元素坐标）
 - Agent 理解现有 slide 结构
+
+
+---
+
+## 11. 拖拽定位规则（核心）
+
+### 规则：所有可拖动元素必须 `position:absolute`
+
+HtmlCanvas 的选中逻辑向上冒泡查找最近的 `position:absolute` 祖先。**只有 `position:absolute` 的元素才能被选中和拖动。**
+
+- 容器（卡片/分组）：`position:absolute`（不要加 `position:relative`，会覆盖）
+- 容器内子元素：也必须 `position:absolute`，坐标相对于容器
+- 嵌套选中：先点击选中容器 → 再点击内部子元素（deep-select）
+
+### 禁止
+
+- ❌ 子元素用 flow 布局（无法选中/拖动）
+- ❌ 容器同时写 `position:absolute` 和 `position:relative`（后者覆盖前者）
+
+### 一键打散（Flatten Children）
+
+选中一个容器元素后，点击工具栏「打散」按钮（或 Alt+F），自动将其所有子元素转为 `position:absolute`，坐标基于当前渲染位置计算。
+
+适用场景：从外部粘贴的 HTML 片段、flow 布局的卡片组等。

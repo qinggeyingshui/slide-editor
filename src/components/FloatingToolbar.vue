@@ -27,8 +27,8 @@
     <div class="tb-group">
       <button class="tb-btn" :class="{active: parseInt(elStyles.fontWeight)>=700}" @click="toggleBold" title="加粗"><b>B</b></button>
       <button class="tb-btn italic-btn" :class="{active: elStyles.fontStyle==='italic'}" @click="toggleItalic" title="斜体"><i>I</i></button>
-      <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('underline')}" @click="toggleUnderline" title="下划线"><u>U</u></button>
-      <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('line-through')}" @click="toggleStrikethrough" title="删除线"><s>S</s></button>
+      <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('underline')}" @click="toggleDecoration('underline')" title="下划线"><u>U</u></button>
+      <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('line-through')}" @click="toggleDecoration('line-through')" title="删除线"><s>S</s></button>
     </div>
     <!-- Group: Align -->
     <div class="tb-group">
@@ -98,20 +98,12 @@ function toggleItalic() {
   const cur = props.elStyles.fontStyle
   apply('fontStyle', cur === 'italic' ? 'normal' : 'italic')
 }
-function toggleUnderline() {
+function toggleDecoration(keyword) {
   const cur = props.elStyles.textDecoration || ''
-  if (cur.includes('underline')) {
-    apply('textDecoration', cur.replace('underline', '').trim() || 'none')
+  if (cur.includes(keyword)) {
+    apply('textDecoration', cur.replace(keyword, '').trim() || 'none')
   } else {
-    apply('textDecoration', (cur === 'none' ? '' : cur) + ' underline')
-  }
-}
-function toggleStrikethrough() {
-  const cur = props.elStyles.textDecoration || ''
-  if (cur.includes('line-through')) {
-    apply('textDecoration', cur.replace('line-through', '').trim() || 'none')
-  } else {
-    apply('textDecoration', (cur === 'none' ? '' : cur) + ' line-through')
+    apply('textDecoration', (cur === 'none' ? '' : cur) + ' ' + keyword)
   }
 }
 function parseFontFamily(val) {
@@ -245,7 +237,7 @@ function toHex(color) {
 .tb-select:hover {
   border-color: #0d1216;
 }
-.tb-select:focus {
+.tb-select:focus, .tb-input:focus {
   border-color: #1a73e8;
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
@@ -264,27 +256,17 @@ function toHex(color) {
   height: 36px;
   transition: border-color 0.15s ease;
 }
-.tb-input:focus {
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
-}
 .size-input { width: 52px; text-align: center; }
 
 /* Range slider */
-.opacity-input {
-  width: 64px;
+.opacity-input, .radius-input {
   accent-color: #1a73e8;
   border: none;
   cursor: pointer;
   height: 4px;
 }
-.radius-input {
-  width: 56px;
-  accent-color: #1a73e8;
-  border: none;
-  cursor: pointer;
-  height: 4px;
-}
+.opacity-input { width: 64px; }
+.radius-input { width: 56px; }
 .radius-val {
   font-size: 11px;
   color: #5f6368;
