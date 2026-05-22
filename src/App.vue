@@ -24,8 +24,15 @@
           📷 图片
           <input type="file" accept="image/*" hidden @change="handleImageUpload" />
         </label>
+        <button @click="insertTextBox">T 文本</button>
         <span class="tb-sep"></span>
-        <button @click="unlockFreeLayout" title="将所有元素转为自由定位，可随意拖拽">🔓 自由布局</button>
+        <button @click="saveToFile" title="Ctrl+S">💾 保存</button>
+        <button @click="exportJSON">📥 导出</button>
+        <label class="tb-upload-btn">
+          📂 导入
+          <input type="file" accept=".json" hidden @change="importJSON" />
+        </label>
+        <span v-if="saveStatus" class="save-status">{{ saveStatus }}</span>
       </div>
       <div class="toolbar-right">
         <span class="page-info">{{ currentIndex + 1 }} / {{ slides.length }}</span>
@@ -37,7 +44,9 @@
           class="slide-thumb" :class="{active: i === currentIndex}"
           @click="currentIndex = i">
           <div class="thumb-num">{{ i + 1 }}</div>
-          <div class="thumb-preview" :style="thumbStyle(s)"></div>
+          <div class="thumb-preview">
+            <div class="thumb-content" v-html="s.innerHTML"></div>
+          </div>
         </div>
       </div>
       <div class="canvas-wrap" ref="canvasWrapRef">
@@ -59,14 +68,18 @@
         </div>
       </div>
       <div class="props-panel">
-        <StylePanel :elStyles="selectedElStyles" @apply-style="onApplyStyle" />
+        <StylePanel :elStyles="selectedElStyles"
+          @apply-style="onApplyStyle"
+          @clone-before="onCloneBefore"
+          @clone-after="onCloneAfter"
+          @delete-el="onDeleteEl" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import HtmlCanvas from './components/HtmlCanvas.vue'
 import ShapeLayer from './components/ShapeLayer.vue'
 import StylePanel from './components/StylePanel.vue'
@@ -98,6 +111,57 @@ function saveSlides() {
   } catch (e) { /* quota exceeded etc */ }
 }
 
+// Save to source file via Vite middleware
+const saveStatus = ref('')
+async function saveToFile() {
+  saveSlides() // also update localStorage
+  try {
+    const res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slides: slides.value, css: presentationCSS })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      saveStatus.value = '✓ 已保存'
+      setTimeout(() => saveStatus.value = '', 2000)
+    }
+  } catch (e) {
+    saveStatus.value = '⚠ 保存失败'
+    setTimeout(() => saveStatus.value = '', 3000)
+  }
+}
+
+// Export JSON
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(slides.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'presentation.json'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// Import JSON
+function importJSON(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result)
+      if (Array.isArray(data) && data.length > 0) {
+        slides.value = data
+        currentIndex.value = 0
+        saveSlides()
+        saveStatus.value = '✓ 已导入'
+        setTimeout(() => saveStatus.value = '', 2000)
+      }
+    } catch (err) { alert('JSON 格式错误') }
+  }
+  reader.readAsText(file)
+  e.target.value = ''
+}
+
 // Slides data
 const slides = ref(loadSlides())
 const currentIndex = ref(0)
@@ -110,8 +174,8 @@ const canvasScale = ref(1)
 
 function updateScale() {
   if (!canvasWrapRef.value) return
-  const w = canvasWrapRef.value.clientWidth - 48
-  const h = canvasWrapRef.value.clientHeight - 32
+  const w = canvasWrapRef.value.clientWidth * 0.95
+  const h = canvasWrapRef.value.clientHeight * 0.95
   canvasScale.value = Math.min(w / 1280, h / 720)
 }
 
@@ -131,36 +195,114 @@ const innerTransform = computed(() => ({
 }))
 
 let ro = null
+function onKeyDown(e) {
+  // Don't intercept when editing text
+  if (e.target.isContentEditable) return
+  // Ctrl+S → save to file
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    saveToFile()
+    return
+  }
+}
 onMounted(() => {
-  updateScale()
+  document.addEventListener('keydown', onKeyDown)
+  window.addEventListener('beforeunload', saveToFile)
   ro = new ResizeObserver(updateScale)
-  if (canvasWrapRef.value) ro.observe(canvasWrapRef.value)
-  // Double-click on group elements → enter group
-  document.addEventListener('dblclick', (e) => {
-    const api = getCanvasApi()
-    if (!api || !api.enterGroup) return
-    // Find closest group element (.g2 or similar)
-    const groupEl = e.target.closest('.g2, .g3, .g4, [class*="group"]')
-    if (groupEl) {
-      api.enterGroup(groupEl)
+  nextTick(() => {
+    if (canvasWrapRef.value) {
+      ro.observe(canvasWrapRef.value)
+      updateScale()
     }
   })
 })
-onUnmounted(() => { if (ro) ro.disconnect() })
+watch(canvasWrapRef, (el) => {
+  if (el) {
+    if (ro) ro.observe(el)
+    updateScale()
+  }
+})
+onUnmounted(() => { if (ro) ro.disconnect(); document.removeEventListener('keydown', onKeyDown); window.removeEventListener('beforeunload', saveToFile) })
+
+// Save to file on page switch
+watch(currentIndex, () => { saveToFile() })
 
 // Auto-save to localStorage on any slide change
 watch(slides, saveSlides, { deep: true })
 
 // Element selection
 const selectedElStyles = ref(null)
-function onSelectElement(styles) { selectedElStyles.value = styles }
+let selectedDomEl = null
+function onSelectElement(el) {
+  selectedDomEl = el
+  if (!el) { selectedElStyles.value = null; return }
+  const cs = getComputedStyle(el)
+  selectedElStyles.value = {
+    tagName: el.tagName.toLowerCase(),
+    left: el.style.left || cs.left,
+    top: el.style.top || cs.top,
+    width: el.style.width || cs.width,
+    height: el.style.height || cs.height,
+    fontFamily: cs.fontFamily,
+    fontSize: cs.fontSize,
+    lineHeight: cs.lineHeight,
+    fontWeight: cs.fontWeight,
+    textAlign: cs.textAlign,
+    color: cs.color,
+    backgroundColor: cs.backgroundColor,
+    opacity: cs.opacity,
+    borderRadius: cs.borderRadius,
+    border: el.style.border || cs.border,
+    boxShadow: el.style.boxShadow || cs.boxShadow,
+    padding: el.style.padding || cs.padding
+  }
+}
 function getCanvasApi() {
   const root = document.querySelector('.html-canvas-root')
   return root && root.__api
 }
 function onApplyStyle(prop, value) {
+  if (!selectedDomEl) return
+  selectedDomEl.style[prop] = value
+  // Refresh the style panel to reflect the change
+  onSelectElement(selectedDomEl)
+  // Trigger save
   const api = getCanvasApi()
-  if (api && api.applyStyle) api.applyStyle(prop, value)
+  if (api && api.pushHistory) api.pushHistory()
+}
+function syncDomToSlides() {
+  const render = document.querySelector('.slide-render')
+  if (render && currentSlide.value) {
+    currentSlide.value.innerHTML = render.innerHTML
+  }
+}
+function onCloneBefore() {
+  if (!selectedDomEl) return
+  const clone = selectedDomEl.cloneNode(true)
+  selectedDomEl.before(clone)
+  const api = getCanvasApi()
+  if (api && api.pushHistory) api.pushHistory()
+  syncDomToSlides()
+  onSelectElement(clone)
+}
+function onCloneAfter() {
+  if (!selectedDomEl) return
+  const clone = selectedDomEl.cloneNode(true)
+  selectedDomEl.after(clone)
+  const api = getCanvasApi()
+  if (api && api.pushHistory) api.pushHistory()
+  syncDomToSlides()
+  onSelectElement(clone)
+}
+function onDeleteEl() {
+  if (!selectedDomEl) return
+  const next = selectedDomEl.nextElementSibling || selectedDomEl.previousElementSibling
+  selectedDomEl.remove()
+  const api = getCanvasApi()
+  if (api && api.pushHistory) api.pushHistory()
+  syncDomToSlides()
+  if (next) onSelectElement(next)
+  else { selectedDomEl = null; selectedElStyles.value = null }
 }
 function onUpdateHtml(html) {
   if (currentSlide.value) {
@@ -201,6 +343,12 @@ function insertShape(type) {
   if (!currentSlide.value.shapes) currentSlide.value.shapes = []
   currentSlide.value.shapes.push(createShape(type, 100 + Math.random()*200, 100 + Math.random()*200))
   showShapeMenu.value = false
+}
+
+function insertTextBox() {
+  const html = `<div style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px;cursor:move;">双击编辑文本</div>`
+  const api = getCanvasApi()
+  if (api && api.insertHtml) api.insertHtml(html)
 }
 
 function onShapeDrag(e, shape) {
@@ -293,9 +441,12 @@ html, body, #app { height: 100%; }
 .slide-thumb { margin-bottom: 10px; cursor: pointer; border-radius: 6px; border: 2px solid transparent; padding: 4px; }
 .slide-thumb.active { border-color: #1a73e8; background: #e8f0fe; }
 .thumb-num { font-size: 11px; color: #666; margin-bottom: 4px; }
-.thumb-preview { width: 100%; aspect-ratio: 16/9; border-radius: 4px; background: #f0f4f8; border: 1px solid #eee; }
+.thumb-preview { width: 100%; aspect-ratio: 16/9; border-radius: 4px; background: #f0f4f8; border: 1px solid #eee; overflow: hidden; position: relative; }
+.thumb-content { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform: scale(0.137); transform-origin: top left; pointer-events: none; }
 .canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #e8eaed; overflow: hidden; padding: 0; }
 .canvas { box-shadow: 0 2px 12px rgba(0,0,0,0.15); overflow: hidden; border-radius: 4px; }
 .canvas-inner { position: relative; }
 .props-panel { width: 320px; background: #fff; border-left: 1px solid #e8e8e8; overflow-y: auto; }
+.save-status { font-size: 12px; color: #34a853; font-weight: 500; margin-left: 8px; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
