@@ -12,6 +12,7 @@ PROJ = Path(__file__).parent.parent
 OUT_JS = PROJ / 'src/model/presentationData.js'
 IMG_DIR = PROJ / 'public/images'
 VID_DIR = PROJ / 'public/videos'
+_video_map = {}  # populated by extract_videos before convert
 
 def hex_rgba(c):
     """Convert #RRGGBBAA to rgba() string; pass through 6-char hex."""
@@ -48,7 +49,8 @@ def render_el(el, ox=0, oy=0, slide_idx=0, img_counter=[0]):
         return f'<img src="{src}" style="{base}height:{h:.1f}px;" />'
 
     if el.get('type') == 'video':
-        src = save_video(el, slide_idx, img_counter)
+        ref = el.get('ref') or ''
+        src = _video_map.get(ref, '')
         if src:
             return f'<video src="{src}" style="{base}height:{h:.1f}px;" controls muted></video>'
         return f'<div style="{base}height:{h:.1f}px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">▶ Video</div>'
@@ -149,21 +151,19 @@ def save_image(el, si, counter):
     (IMG_DIR / fname).write_bytes(base64.b64decode(b64))
     return f"/images/{fname}"
 
-def save_video(el, si, counter):
-    """Save video blob (base64) to public/videos/"""
-    b64 = el.get('blob') or ''
-    if not b64: return ''
+def extract_videos(pptx_path):
+    """Extract video files from PPTX zip to public/videos/"""
+    import zipfile
     VID_DIR.mkdir(parents=True, exist_ok=True)
-    ext = 'mp4'
-    if ',' in b64:
-        header, b64 = b64.split(',', 1)
-        if 'webm' in header: ext = 'webm'
-        elif 'ogg' in header: ext = 'ogg'
-    fname = f"s{si+1}_{counter[0]}.{ext}"
-    counter[0] += 1
-    b64 += '=' * (-len(b64) % 4)
-    (VID_DIR / fname).write_bytes(base64.b64decode(b64))
-    return f"/videos/{fname}"
+    extracted = {}
+    with zipfile.ZipFile(pptx_path) as zf:
+        for name in zf.namelist():
+            if name.startswith('ppt/media/') and name.split('.')[-1] in ('mp4','webm','avi','mov','wmv'):
+                fname = name.split('/')[-1]
+                (VID_DIR / fname).write_bytes(zf.read(name))
+                extracted[name] = f"/videos/{fname}"
+    print(f"Extracted {len(extracted)} videos")
+    return extracted
 
 def convert(json_path):
     data = json.loads(Path(json_path).read_text(encoding='utf-8'))
@@ -181,6 +181,7 @@ def convert(json_path):
 
 def parse_pptx(pptx_path):
     """调用node+pptxtojson(esbuild bundle)解析pptx为json"""
+    import shutil
     out_json = Path(__file__).parent / 'pptx_parsed.json'
     bundle = Path(__file__).parent / '_pptxtojson_bundle.mjs'
     if not bundle.exists():
@@ -189,18 +190,24 @@ def parse_pptx(pptx_path):
         subprocess.run([str(esbuild), entry, '--bundle', '--format=esm',
                         '--platform=node', f'--outfile=scripts/_pptxtojson_bundle.mjs'],
                        cwd=str(PROJ), check=True)
+    # Copy to temp English name to avoid encoding issues
+    tmp_pptx = Path(__file__).parent / '_input_tmp.pptx'
+    shutil.copy2(pptx_path, tmp_pptx)
+    tmp_path_str = str(tmp_pptx.resolve()).replace(chr(92), "/")
+    out_path_str = str(out_json.resolve()).replace(chr(92), "/")
     script = f"""
 import {{ parse }} from './_pptxtojson_bundle.mjs';
 import fs from 'fs';
-const buf = fs.readFileSync('{pptx_path.replace(chr(92), "/")}');
+const buf = fs.readFileSync('{tmp_path_str}');
 const r = await parse(buf);
-fs.writeFileSync('{str(out_json).replace(chr(92), "/")}', JSON.stringify(r));
+fs.writeFileSync('{out_path_str}', JSON.stringify(r));
 console.log('parsed');
 """
     tmp = Path(__file__).parent / '_parse_tmp.mjs'
-    tmp.write_text(script)
+    tmp.write_text(script, encoding='utf-8')
     subprocess.run(['node', str(tmp)], cwd=str(Path(__file__).parent), check=True)
-    tmp.unlink()
+    tmp.unlink(missing_ok=True)
+    tmp_pptx.unlink(missing_ok=True)
     return out_json
 
 def export_bg(pptx_path):
@@ -273,8 +280,8 @@ if __name__ == '__main__':
     inp = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).parent / 'pptx_parsed.json')
     if inp.endswith('.pptx'):
         export_bg(inp)
+        _video_map.update(extract_videos(inp))
         parsed = str(parse_pptx(inp))
-        export_missing_shapes(inp, parsed)
         convert(parsed)
     else:
         convert(inp)
