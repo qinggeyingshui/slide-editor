@@ -1,5 +1,5 @@
-export const slides = 
-[
+// Auto-saved by slide-editor
+export const presentationSlides = [
   {
     "layout": "title-center",
     "innerHTML": "<div style=\"position:absolute;left:0;top:0;width:960px;height:540px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);\"></div><div style=\"position:absolute;left:80px;top:180px;width:800px;text-align:center;font-size:48px;font-weight:700;color:#fff;font-family:'Noto Serif SC',serif;\">布局模板系统演示</div><div style=\"position:absolute;left:80px;top:260px;width:800px;text-align:center;font-size:20px;color:rgba(255,255,255,0.7);\">8 种布局 · 自动选择 · 告别千篇一律</div><div style=\"position:absolute;left:380px;top:340px;width:200px;height:3px;background:linear-gradient(90deg,transparent,#e94560,transparent);\"></div>"
@@ -27,11 +27,12 @@ export const slides =
   {
     "id": "s7",
     "layout": "three-cards",
-    "innerHTML": "<div style=\"position:absolute;left:60px;top:40px;font-size:32px;font-weight:bold;\">打散测试页</div><div style=\"position:absolute;left:60px;top:100px;width:300px;height:300px;background:#f0f4ff;border-radius:12px;border:1px solid #ddd;padding:20px;\"><h3 style=\"margin:0 0 10px;\">卡片标题</h3><p style=\"margin:0 0 8px;color:#666;\">这是一段描述文字</p><span style=\"display:inline-block;padding:4px 12px;background:#4f46e5;color:#fff;border-radius:6px;\">标签</span></div><div style=\"position:absolute;left:420px;top:100px;width:300px;height:300px;background:#fff7ed;border-radius:12px;border:1px solid #ddd;padding:20px;\"><h3 style=\"margin:0 0 10px;\">另一个卡片</h3><p style=\"margin:0 0 8px;color:#666;\">子元素是flow布局</p><p style=\"margin:0;color:#999;font-size:13px;\">选中此卡片→点「打散」→子元素变absolute可拖动</p></div>"
+    "innerHTML": "<div style=\"position:absolute;left:60px;top:40px;font-size:32px;font-weight:bold;\">打散测试页</div><div style=\"position: absolute; left: 62.0777px; top: 166.487px; width: 300px; height: 300px; background: rgb(240, 244, 255); border-radius: 12px; border: 1px solid rgb(221, 221, 221); padding: 20px;\"><h3 style=\"margin:0 0 10px;\">卡片标题</h3><p style=\"margin:0 0 8px;color:#666;\">这是一段描述文字</p><span style=\"display:inline-block;padding:4px 12px;background:#4f46e5;color:#fff;border-radius:6px;\">标签</span></div><div style=\"position:absolute;left:420px;top:100px;width:300px;height:300px;background:#fff7ed;border-radius:12px;border:1px solid #ddd;padding:20px;\"><h3 style=\"margin:0 0 10px;\">另一个卡片</h3><p style=\"margin:0 0 8px;color:#666;\">子元素是flow布局</p><p style=\"margin:0;color:#999;font-size:13px;\">选中此卡片→点「打散」→子元素变absolute可拖动</p></div>"
   },
   {
     "layout": "title-center",
     "innerHTML": "<div style=\"position:absolute;left:0;top:0;width:960px;height:540px;background:linear-gradient(135deg,#0f3460,#1a1a2e);\"></div><div style=\"position:absolute;left:80px;top:200px;width:800px;text-align:center;font-size:40px;font-weight:700;color:#fff;\">谢谢观看</div><div style=\"position:absolute;left:80px;top:270px;width:800px;text-align:center;font-size:18px;color:rgba(255,255,255,0.6);\">布局模板系统 · 让每一页都有节奏</div><div style=\"position:absolute;left:380px;top:320px;width:200px;height:2px;background:linear-gradient(90deg,transparent,#e94560,transparent);\"></div>"
   }
-];
-export const presentationCSS = '';
+]
+
+export const presentationCSS = ""

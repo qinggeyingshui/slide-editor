@@ -98,14 +98,14 @@ onMounted(() => {
   document.addEventListener('keydown', onKeyDown)
   // Expose API on DOM element for parent access
   if (rootRef.value) {
-    rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory }
+    rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory, getSelectedEl: () => selectedEls.value[0] || null }
   }
 })
 
 // Ensure __api is always bound (survives HMR)
 watchEffect(() => {
   if (rootRef.value && !rootRef.value.__api) {
-    rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory }
+    rootRef.value.__api = { insertHtml, undo, redo, unlockFreeLayout, enterGroup, pushHistory, getSelectedEl: () => selectedEls.value[0] || null }
   }
 })
 

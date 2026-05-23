@@ -178,14 +178,15 @@ function onUngroup() {
   if (!el || !el.children.length) return
   const slideRender = el.parentElement
   if (!slideRender) return
+  const s = canvasScale.value
   const renderRect = slideRender.getBoundingClientRect()
   const children = Array.from(el.children)
-  children.forEach(child => {
-    const cr = child.getBoundingClientRect()
+  const rects = children.map(child => child.getBoundingClientRect())
+  children.forEach((child, i) => {
     child.style.position = 'absolute'
-    child.style.left = (cr.left - renderRect.left) + 'px'
-    child.style.top = (cr.top - renderRect.top) + 'px'
-    child.style.width = cr.width + 'px'
+    child.style.left = ((rects[i].left - renderRect.left) / s) + 'px'
+    child.style.top = ((rects[i].top - renderRect.top) / s) + 'px'
+    child.style.width = (rects[i].width / s) + 'px'
     slideRender.insertBefore(child, el)
   })
   el.innerHTML = ''

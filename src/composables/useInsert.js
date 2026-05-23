@@ -10,12 +10,19 @@ export function useInsert(getCanvasApi) {
     if (!latex) return
     let rendered = ''
     try {
-      rendered = window.katex.renderToString(latex, { throwOnError: false, displayMode: true })
+      rendered = window.katex.renderToString(latex, { throwOnError: false, displayMode: false })
     } catch (e) {
       rendered = `<span style="color:red;">公式错误: ${e.message}</span>`
     }
-    const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;padding:16px 24px;background:rgba(255,255,255,0.95);border-radius:6px;cursor:move;font-size:24px;">${rendered}</div>`
     const api = getCanvasApi()
+    // If a text element is selected, insert inline
+    const sel = api?.getSelectedEl?.()
+    if (sel && sel.isContentEditable !== false && sel.tagName === 'DIV') {
+      sel.innerHTML += `<span class="latex-inline" data-latex="${latex.replace(/"/g, '&quot;')}">${rendered}</span>`
+      return
+    }
+    // Otherwise create a text-box style container with the formula
+    const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px;cursor:move;">${rendered}</div>`
     if (api?.insertHtml) api.insertHtml(html)
   }
 
