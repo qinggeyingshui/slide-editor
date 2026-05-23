@@ -1,6 +1,6 @@
 export function useInsert(getCanvasApi) {
   function insertTextBox() {
-    const html = `<div style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px;cursor:move;">双击编辑文本</div>`
+    const html = `<div style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:transparent;border:none;cursor:move;">双击编辑文本</div>`
     const api = getCanvasApi()
     if (api?.insertHtml) api.insertHtml(html)
   }
@@ -22,7 +22,7 @@ export function useInsert(getCanvasApi) {
       return
     }
     // Otherwise create a text-box style container with the formula
-    const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px;cursor:move;">${rendered}</div>`
+    const html = `<div class="latex-block" data-latex="${latex.replace(/"/g, '&quot;')}" style="position:absolute;left:${100+Math.random()*400|0}px;top:${100+Math.random()*300|0}px;width:240px;padding:12px 16px;font-size:18px;color:#333;background:transparent;border:none;cursor:move;">${rendered}</div>`
     if (api?.insertHtml) api.insertHtml(html)
   }
 

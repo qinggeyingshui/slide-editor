@@ -33,9 +33,9 @@
     <!-- Group: Align (cycle) -->
     <div class="tb-group">
       <button class="tb-btn align-btn" @click="cycleAlign" :title="'对齐: ' + (elStyles.textAlign || 'left')">
-        <svg v-if="!elStyles.textAlign || elStyles.textAlign==='left'" width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M1 5h8M1 8h12M1 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <svg v-else-if="elStyles.textAlign==='center'" width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M3 5h8M1 8h12M4 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <svg v-else width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M6 5h7M1 8h12M8 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg v-if="!elStyles.textAlign || elStyles.textAlign==='left'" viewBox="0 0 14 14"><path d="M1 2h12M1 5h8M1 8h12M1 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg v-else-if="elStyles.textAlign==='center'" viewBox="0 0 14 14"><path d="M1 2h12M3 5h8M1 8h12M4 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg v-else viewBox="0 0 14 14"><path d="M1 2h12M6 5h7M1 8h12M8 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
     </div>
     <!-- Group: Color -->
@@ -46,7 +46,7 @@
         <input type="color" :value="toHex(elStyles.color)" @input="apply('color', $event.target.value)">
       </label>
       <label class="tb-color-wrap" title="背景色">
-        <svg class="color-label" width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" opacity="0.3"/><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        <svg class="color-label" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" opacity="0.3"/><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
         <span class="color-indicator" :style="{backgroundColor: elStyles.backgroundColor || 'transparent'}"></span>
         <input type="color" :value="toHex(elStyles.backgroundColor)" @input="apply('backgroundColor', $event.target.value)">
       </label>
@@ -57,30 +57,30 @@
     </div>
     <!-- Group: Border Radius -->
     <div class="tb-group">
-      <svg class="tb-icon" width="14" height="14" viewBox="0 0 14 14"><path d="M2 10V6a4 4 0 014-4h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      <svg class="tb-icon" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="3" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
       <input class="tb-input radius-input" type="range" min="0" max="50" step="1" :value="parseRadius(elStyles.borderRadius)" @input="apply('borderRadius', $event.target.value + '%')" title="圆角">
       <span class="radius-val">{{ parseRadius(elStyles.borderRadius) }}%</span>
     </div>
     <!-- Group: Actions -->
     <div class="tb-group actions-group">
       <button class="tb-btn action-btn" @click="$emit('clone-before')" title="克隆到前面">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 11V3M4 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M7 11V3M4 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <button class="tb-btn action-btn" @click="$emit('clone-after')" title="克隆到后面">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
 
       <button class="tb-btn action-btn" @click="$emit('ungroup')" title="解组 (Alt+G)">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="2 2"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="2 2"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       </button>
       <button class="tb-btn action-btn" @click="$emit('layer-up')" title="上移图层">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 9l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M3 9l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
       <button class="tb-btn action-btn" @click="$emit('layer-down')" title="下移图层">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
       <button class="tb-btn tb-delete" @click="$emit('delete-el')" title="删除">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 4h8M5.5 4V3a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M4.5 4v7.5a1 1 0 001 1h3a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <svg viewBox="0 0 14 14"><path d="M3 4h8M5.5 4V3a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M4.5 4v7.5a1 1 0 001 1h3a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
     </div>
   </div>
@@ -148,8 +148,11 @@ function toHex(color) {
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 0 14px;
+  height: 48px;
+  box-sizing: border-box;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -235,6 +238,7 @@ function toHex(color) {
   outline: none;
   color: #0d1216;
   height: 40px;
+  box-sizing: border-box;
   transition: border-color 0.15s ease;
   appearance: none;
   -webkit-appearance: none;
@@ -262,6 +266,7 @@ function toHex(color) {
   color: #0d1216;
   background: #fff;
   height: 40px;
+  box-sizing: border-box;
   transition: border-color 0.15s ease;
 }
 .size-input { width: 56px; text-align: center; }
@@ -281,6 +286,8 @@ function toHex(color) {
   min-width: 28px;
 }
 .tb-icon {
+  width: 16px;
+  height: 16px;
   color: #5f6368;
   flex-shrink: 0;
 }
@@ -292,8 +299,10 @@ function toHex(color) {
   align-items: center;
   cursor: pointer;
   position: relative;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 8px;
+  height: 36px;
+  justify-content: center;
   transition: background 0.15s ease;
 }
 .tb-color-wrap:hover {
@@ -327,8 +336,8 @@ function toHex(color) {
 
 /* SVG icons in buttons */
 .tb-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
 }
 .align-btn, .action-btn {

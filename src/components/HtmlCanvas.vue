@@ -24,6 +24,7 @@
 
 <script setup>
 import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue'
+import * as echarts from 'echarts'
 
 const props = defineProps({ slide: Object })
 const emit = defineEmits(['select-element', 'update-html'])
@@ -85,6 +86,16 @@ function renderSlide() {
             try { return katex.renderToString(tex, { displayMode: false, throwOnError: false }) } catch(e) { return tex }
           })
         }
+      })
+    }
+    // Render ECharts blocks
+    if (slideRef.value) {
+      slideRef.value.querySelectorAll('[data-echarts]').forEach(el => {
+        try {
+          const opt = JSON.parse(el.getAttribute('data-echarts'))
+          const instance = echarts.init(el, null, { renderer: 'svg' })
+          instance.setOption(opt)
+        } catch(e) { /* skip invalid */ }
       })
     }
   })

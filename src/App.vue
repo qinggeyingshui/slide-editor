@@ -1,7 +1,11 @@
 <template>
-  <!-- Presenter Mode Overlay -->
-  <PresenterMode v-if="presenterMode" :slides="slides" :startIndex="currentIndex"
-    @exit="exitPresentation" />
+  <!-- Presenter Mode: pure DOM overlay (bypasses Vue HMR issues) -->
+  <div v-if="presenterMode" class="fullscreen-presenter" ref="presenterRef" tabindex="0" @keydown="onPresenterKey">
+    <div class="slide-container">
+      <div class="slide-canvas" ref="presenterCanvas"></div>
+    </div>
+    <div class="slide-counter">{{ presenterIdx + 1 }} / {{ slides.length }}</div>
+  </div>
   <!-- Editor View (direct mode) -->
   <div class="editor" v-show="!presenterMode">
     <div class="toolbar">
@@ -45,11 +49,20 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.5 14.5h-9a1 1 0 01-1-1v-11a1 1 0 011-1h7l3 3v9a1 1 0 01-1 1z"/><path d="M5.5 14.5v-4h5v4"/><path d="M5.5 1.5v3h4"/></svg>
           保存
         </button>
-        <button @click="exportJSON">导出</button>
-        <label class="tb-upload-btn">
-          导入
-          <input type="file" accept=".json" hidden @change="importJSON" />
-        </label>
+        <div class="export-dropdown" style="position:relative;display:inline-block;">
+          <button @click="showExportMenu=!showExportMenu">导出 ▾</button>
+          <div v-if="showExportMenu" class="export-menu" style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:4px;z-index:100;white-space:nowrap;">
+            <button @click="exportJSON();showExportMenu=false" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导出 JSON</button>
+            <button @click="exportPPTX();showExportMenu=false" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导出 PPTX</button>
+          </div>
+        </div>
+        <div class="export-dropdown" style="position:relative;display:inline-block;">
+          <button @click="showImportMenu=!showImportMenu">导入 ▾</button>
+          <div v-if="showImportMenu" class="export-menu" style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:4px;z-index:100;white-space:nowrap;">
+            <label style="display:block;padding:6px 12px;cursor:pointer;">导入 JSON<input type="file" accept=".json" hidden @change="(e)=>{importJSON(e);showImportMenu=false}" /></label>
+            <label style="display:block;padding:6px 12px;cursor:pointer;">导入 PPTX<input type="file" accept=".pptx" hidden @change="(e)=>{importPPTX(e);showImportMenu=false}" /></label>
+          </div>
+        </div>
         <span v-if="saveStatus" class="save-status">{{ saveStatus }}</span>
       </div>
       <div class="toolbar-right">
@@ -107,8 +120,8 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import HtmlCanvas from './components/HtmlCanvas.vue'
 import ShapeLayer from './components/ShapeLayer.vue'
 import FloatingToolbar from './components/FloatingToolbar.vue'
-import PresenterMode from './components/PresenterMode.vue'
-import { presentationSlides, presentationCSS } from './model/presentationData.js'
+import * as echarts from 'echarts'
+import { slides as presentationSlides } from './model/presentationData.js'
 import { createShape } from './model/types.js'
 import { useFileIO } from './composables/useFileIO.js'
 import { useCanvasScale } from './composables/useCanvasScale.js'
@@ -123,16 +136,58 @@ const currentSlide = computed(() => slides.value[currentIndex.value])
 
 // Presenter mode
 const presenterMode = ref(false)
+const presenterIdx = ref(0)
+const presenterCanvas = ref(null)
+const presenterRef = ref(null)
+
+function renderPresenterSlide() {
+  const canvas = document.querySelector('.fullscreen-presenter .slide-canvas')
+  if (!canvas || !slides.value.length) return
+  const html = slides.value[presenterIdx.value]?.innerHTML || ''
+  canvas.innerHTML = html
+  nextTick(() => {
+    canvas.querySelectorAll('[data-echarts]').forEach(el => {
+      try {
+        const opt = JSON.parse(el.getAttribute('data-echarts'))
+        echarts.init(el, null, { renderer: 'svg' }).setOption(opt)
+      } catch(e) {}
+    })
+  })
+}
+
 function startPresentation() {
-  document.documentElement.requestFullscreen().then(() => { presenterMode.value = true }).catch(() => { presenterMode.value = true })
+  presenterIdx.value = currentIndex.value
+  presenterMode.value = true
+  nextTick(() => {
+    renderPresenterSlide()
+    const el = presenterRef.value || document.querySelector('.fullscreen-presenter')
+    if (el) {
+      const s = Math.min(window.innerWidth / 960, window.innerHeight / 540)
+      el.querySelector('.slide-canvas').style.transform = `scale(${s})`
+      el.focus()
+      el.requestFullscreen?.().catch(() => {})
+    }
+  })
 }
 function exitPresentation() {
   if (document.fullscreenElement) document.exitFullscreen?.()
   presenterMode.value = false
 }
 
+watch(presenterIdx, renderPresenterSlide)
+watch(presenterMode, (v) => { if (v) nextTick(renderPresenterSlide) })
+
+function onPresenterKey(e) {
+  if (!presenterMode.value) return
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); presenterIdx.value = Math.min(presenterIdx.value + 1, slides.value.length - 1) }
+  else if (e.key === 'ArrowLeft') { presenterIdx.value = Math.max(presenterIdx.value - 1, 0) }
+  else if (e.key === 'Escape') { exitPresentation() }
+}
+onMounted(() => document.addEventListener('keydown', onPresenterKey))
+onUnmounted(() => document.removeEventListener('keydown', onPresenterKey))
+
 // Composables
-const { saveStatus, saveToFile, exportJSON, importJSON } = useFileIO(slides, currentIndex)
+const { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX } = useFileIO(slides, currentIndex)
 
 const canvasWrapRef = ref(null)
 const htmlCanvasRef = ref(null)
@@ -218,6 +273,8 @@ function duplicateSlide() {
 
 // Shapes
 const showShapeMenu = ref(false)
+const showExportMenu = ref(false)
+const showImportMenu = ref(false)
 const selectedShapeId = ref(null)
 const shapeDrag = ref(null)
 const shapeResize = ref(null)
@@ -391,6 +448,20 @@ html, body, #app { height: 100%; }
   border-color: #0d1216;
   color: #0d1216;
 }
+.toolbar-right { display: flex; gap: 10px; align-items: center; }
+.toolbar-right button {
+  padding: 10px 18px; border: 1.5px solid #dadce0;
+  border-radius: 10px; background: #fff;
+  cursor: pointer; font-size: 15px; font-weight: 500;
+  color: #0d1216; height: 42px;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all var(--transition-fast);
+}
+.toolbar-right button:hover {
+  background: #f0f0f0;
+  border-color: #0d1216;
+  color: #0d1216;
+}
 .toolbar-right .page-info {
   font-size: 13px; color: var(--color-text-muted);
   font-weight: 500; font-variant-numeric: tabular-nums;
@@ -458,4 +529,31 @@ html, body, #app { height: 100%; }
   animation: fadeSlideIn 0.25s ease-out;
 }
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+/* === Presenter Mode === */
+.fullscreen-presenter {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  outline: none;
+}
+.fullscreen-presenter:fullscreen {
+  width: 100vw; height: 100vh;
+}
+.fullscreen-presenter .slide-container {
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.fullscreen-presenter .slide-canvas {
+  width: 960px; height: 540px;
+  background: #fff; border-radius: 0;
+  transform-origin: center center;
+  overflow: hidden; padding: 40px;
+  box-sizing: border-box;
+}
+.fullscreen-presenter .slide-counter {
+  position: absolute; bottom: 20px; right: 30px;
+  color: rgba(255,255,255,0.7); font-size: 14px;
+}
 </style>

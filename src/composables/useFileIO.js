@@ -48,5 +48,38 @@ export function useFileIO(slides, currentIndex) {
     e.target.value = ''
   }
 
-  return { saveStatus, saveToFile, exportJSON, importJSON }
+  async function exportPPTX() {
+    saveStatus.value = '导出中...'
+    try {
+      const res = await fetch('/api/export-pptx', { method: 'POST' })
+      if (!res.ok) throw new Error((await res.json()).error || 'export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'presentation.pptx'; a.click()
+      URL.revokeObjectURL(url)
+      saveStatus.value = '✓ 已导出PPTX'
+    } catch (e) { saveStatus.value = '✗ ' + e.message }
+    setTimeout(() => saveStatus.value = '', 3000)
+  }
+
+  async function importPPTX(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    e.target.value = ''
+    saveStatus.value = '导入中...'
+    try {
+      const res = await fetch('/api/import-pptx', { method: 'POST', body: await file.arrayBuffer() })
+      if (!res.ok) throw new Error((await res.json()).error || 'import failed')
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        slides.value = data
+        currentIndex.value = 0
+        saveStatus.value = '✓ 已导入PPTX'
+      }
+    } catch (e) { saveStatus.value = '✗ ' + e.message }
+    setTimeout(() => saveStatus.value = '', 3000)
+  }
+
+  return { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX }
 }
