@@ -190,7 +190,7 @@ function toHex(color) {
   cursor: pointer;
   padding: 8px 12px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: #0d1216;
   min-width: 40px;
@@ -312,7 +312,7 @@ function toHex(color) {
   cursor: pointer;
 }
 .color-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1;
   color: #0d1216;
@@ -327,8 +327,8 @@ function toHex(color) {
 
 /* SVG icons in buttons */
 .tb-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
 }
 .align-btn, .action-btn {
