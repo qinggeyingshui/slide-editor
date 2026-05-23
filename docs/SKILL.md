@@ -615,23 +615,26 @@ Agent 生成时按以下优先级自动选择 layout：
 
 ---
 
-## 11. 拖拽定位规则（核心）
+## 11. 排版与编辑规则
 
-### 规则：所有可拖动元素必须 `position:absolute`
+### 核心理念：利用 HTML 原生排版能力
 
-HtmlCanvas 的选中逻辑向上冒泡查找最近的 `position:absolute` 祖先。**只有 `position:absolute` 的元素才能被选中和拖动。**
+slide-editor 支持两种定位模式，按需混用：
 
-- 容器（卡片/分组）：`position:absolute`（不要加 `position:relative`，会覆盖）
-- 容器内子元素：也必须 `position:absolute`，坐标相对于容器
-- 嵌套选中：先点击选中容器 → 再点击内部子元素（deep-select）
+| 模式 | 适用场景 | 说明 |
+|------|----------|------|
+| `position:absolute` | 自由拖拽元素 | 可被选中、拖动、缩放 |
+| flow/flex/grid | 卡片内部、列表、文本排版 | 利用 HTML 自动排版，无需手动定位 |
 
-### 禁止
+### 选中规则
 
-- ❌ 子元素用 flow 布局（无法选中/拖动）
-- ❌ 容器同时写 `position:absolute` 和 `position:relative`（后者覆盖前者）
+- 顶层元素（slide 直接子元素）：必须 `position:absolute`，可选中拖动
+- 容器内子元素：可以用 flow 布局，整体作为容器移动
+- **组合（Ctrl+G）**：多选元素后组合，单击整体移动，双击进入编辑子元素
+- **解组（Ctrl+Shift+G）**：子元素提升为独立 absolute 元素
 
-### 一键打散（Flatten Children）
+### 推荐做法
 
-选中一个容器元素后，点击工具栏「打散」按钮（或 Alt+F），自动将其所有子元素转为 `position:absolute`，坐标基于当前渲染位置计算。
-
-适用场景：从外部粘贴的 HTML 片段、flow 布局的卡片组等。
+- ✅ 卡片/容器用 absolute 定位，内部子元素用 flow/flex 自然排版
+- ✅ 需要独立编辑子元素时，使用「解组」功能
+- ✅ 多个独立元素需要整体操作时，使用「组合」功能

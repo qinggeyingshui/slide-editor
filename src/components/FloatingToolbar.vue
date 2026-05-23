@@ -30,16 +30,12 @@
       <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('underline')}" @click="toggleDecoration('underline')" title="下划线"><u>U</u></button>
       <button class="tb-btn" :class="{active: elStyles.textDecoration && elStyles.textDecoration.includes('line-through')}" @click="toggleDecoration('line-through')" title="删除线"><s>S</s></button>
     </div>
-    <!-- Group: Align -->
+    <!-- Group: Align (cycle) -->
     <div class="tb-group">
-      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='left'}" @click="apply('textAlign','left')" title="左对齐">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M1 5h8M1 8h12M1 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='center'}" @click="apply('textAlign','center')" title="居中">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M3 5h8M1 8h12M4 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-      <button class="tb-btn align-btn" :class="{active: elStyles.textAlign==='right'}" @click="apply('textAlign','right')" title="右对齐">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M6 5h7M1 8h12M8 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <button class="tb-btn align-btn" @click="cycleAlign" :title="'对齐: ' + (elStyles.textAlign || 'left')">
+        <svg v-if="!elStyles.textAlign || elStyles.textAlign==='left'" width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M1 5h8M1 8h12M1 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg v-else-if="elStyles.textAlign==='center'" width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M3 5h8M1 8h12M4 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg v-else width="14" height="14" viewBox="0 0 14 14"><path d="M1 2h12M6 5h7M1 8h12M8 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
     </div>
     <!-- Group: Color -->
@@ -73,9 +69,7 @@
       <button class="tb-btn action-btn" @click="$emit('clone-after')" title="克隆到后面">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="tb-btn action-btn" @click="$emit('flatten-children')" title="打散子元素 (Alt+F)">
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h4v4H2zM8 2h4v4H8zM5 8h4v4H5z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
-      </button>
+
       <button class="tb-btn action-btn" @click="$emit('ungroup')" title="解组 (Alt+G)">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="2 2"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       </button>
@@ -94,7 +88,7 @@
 
 <script setup>
 const props = defineProps({ elStyles: Object })
-const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'flatten-children', 'ungroup', 'layer-up', 'layer-down'])
+const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'ungroup', 'layer-up', 'layer-down'])
 
 function apply(prop, value) {
   emit('apply-style', { prop, value })
@@ -114,6 +108,11 @@ function toggleDecoration(keyword) {
   } else {
     apply('textDecoration', (cur === 'none' ? '' : cur) + ' ' + keyword)
   }
+}
+function cycleAlign() {
+  const cur = props.elStyles.textAlign || 'left'
+  const next = cur === 'left' ? 'center' : cur === 'center' ? 'right' : 'left'
+  apply('textAlign', next)
 }
 function parseFontFamily(val) {
   if (!val) return 'Arial'

@@ -551,6 +551,14 @@ function onMouseDown(e) {
     if (el.style.position === 'absolute' || getComputedStyle(el).position === 'absolute') break
     el = el.parentElement
   }
+  // If the found element is inside a data-group that we haven't entered, select the group instead
+  if (el && el !== boundary && !activeGroup.value) {
+    let parent = el.parentElement
+    while (parent && parent !== slideRef.value) {
+      if (parent.hasAttribute('data-group')) { el = parent; break }
+      parent = parent.parentElement
+    }
+  }
   if (!el || el === slideRef.value || el === rootRef.value || el === boundary) {
     if (activeGroup.value && el === boundary) { deselectAllKeepGroup(); return }
     deselectAll(); return

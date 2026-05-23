@@ -76,7 +76,6 @@
         @clone-before="onCloneBefore"
         @clone-after="onCloneAfter"
         @delete-el="onDeleteEl"
-        @flatten-children="onFlattenChildren"
         @ungroup="onUngroup"
         @layer-up="onLayerUp"
         @layer-down="onLayerDown" />
@@ -157,21 +156,6 @@ function getCanvasApi() {
 
 const { selectedElStyles, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides } = useElementStyle(currentSlide, getCanvasApi)
 const { insertTextBox, insertLatex, handleImageUpload, handleVideoUpload } = useInsert(getCanvasApi)
-
-function onFlattenChildren() {
-  const el = getSelectedDomEl()
-  if (!el || !el.children.length) return
-  const elRect = el.getBoundingClientRect()
-  const rects = Array.from(el.children).map(child => child.getBoundingClientRect())
-  Array.from(el.children).forEach((child, i) => {
-    child.style.position = 'absolute'
-    child.style.left = (rects[i].left - elRect.left) + 'px'
-    child.style.top = (rects[i].top - elRect.top) + 'px'
-    child.style.width = rects[i].width + 'px'
-  })
-  el.style.position = 'absolute'
-  syncDomToSlides()
-}
 
 function onUngroup() {
   const el = getSelectedDomEl()
