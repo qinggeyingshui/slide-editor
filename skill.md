@@ -93,7 +93,9 @@ data_file.write_text(f"export const slides = {json.dumps(slides, ensure_ascii=Fa
 
 ### 5.2 排版模板
 
-#### 标题页
+> 完整模板库见 **templates.md**（封面/内容/图表/时间线/对比/数据卡片/结尾等 15+ 种布局）
+
+基础示例 — 渐变封面：
 ```html
 <div style="position:absolute;left:0;top:0;width:960px;height:540px;background:linear-gradient(135deg,#667eea,#764ba2);">
   <div style="position:absolute;left:80px;top:180px;font-size:48px;color:#fff;font-weight:bold;">主标题</div>
@@ -101,66 +103,14 @@ data_file.write_text(f"export const slides = {json.dumps(slides, ensure_ascii=Fa
 </div>
 ```
 
-#### 左文右图
-```html
-<div style="position:absolute;left:0;top:0;width:960px;height:540px;background:#fff;">
-  <div style="position:absolute;left:60px;top:40px;font-size:32px;font-weight:bold;color:#333;">标题</div>
-  <div style="position:absolute;left:60px;top:100px;width:400px;font-size:18px;color:#555;line-height:1.8;">
-    正文内容，支持多行排版。要点用列表呈现。
-  </div>
-  <img src="/images/xxx.png" style="position:absolute;right:40px;top:80px;width:400px;height:380px;object-fit:cover;border-radius:12px;" />
-</div>
-```
-
-#### 三栏并列
-```html
-<div style="position:absolute;left:0;top:0;width:960px;height:540px;background:#f8f9fa;">
-  <div style="position:absolute;left:60px;top:40px;font-size:32px;font-weight:bold;">标题</div>
-  <div style="position:absolute;left:60px;top:120px;width:260px;height:360px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-    <div style="font-size:20px;font-weight:bold;margin-bottom:12px;">栏目1</div>
-    <div style="font-size:16px;color:#666;">内容描述</div>
-  </div>
-  <div style="position:absolute;left:350px;top:120px;width:260px;height:360px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-    <div style="font-size:20px;font-weight:bold;margin-bottom:12px;">栏目2</div>
-    <div style="font-size:16px;color:#666;">内容描述</div>
-  </div>
-  <div style="position:absolute;left:640px;top:120px;width:260px;height:360px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-    <div style="font-size:20px;font-weight:bold;margin-bottom:12px;">栏目3</div>
-    <div style="font-size:16px;color:#666;">内容描述</div>
-  </div>
-</div>
-```
-
 ### 5.3 图表插入
 
-使用内联 SVG 或 Canvas（推荐 SVG，截图兼容性好）：
+使用内联 SVG（截图兼容性好）。完整示例见 **templates.md** 图表页部分。
 
-#### 柱状图示例
-```html
-<svg style="position:absolute;left:100px;top:150px;width:760px;height:320px;" viewBox="0 0 760 320">
-  <!-- 坐标轴 -->
-  <line x1="50" y1="280" x2="720" y2="280" stroke="#ccc" stroke-width="1"/>
-  <!-- 柱子 -->
-  <rect x="100" y="80" width="60" height="200" fill="#667eea" rx="4"/>
-  <rect x="220" y="140" width="60" height="140" fill="#764ba2" rx="4"/>
-  <rect x="340" y="60" width="60" height="220" fill="#f093fb" rx="4"/>
-  <rect x="460" y="120" width="60" height="160" fill="#4facfe" rx="4"/>
-  <!-- 标签 -->
-  <text x="130" y="300" text-anchor="middle" font-size="14" fill="#666">Q1</text>
-  <text x="250" y="300" text-anchor="middle" font-size="14" fill="#666">Q2</text>
-  <text x="370" y="300" text-anchor="middle" font-size="14" fill="#666">Q3</text>
-  <text x="490" y="300" text-anchor="middle" font-size="14" fill="#666">Q4</text>
-</svg>
-```
-
-#### 饼图示例
-```html
-<svg style="position:absolute;left:300px;top:120px;width:360px;height:360px;" viewBox="0 0 200 200">
-  <circle cx="100" cy="100" r="80" fill="none" stroke="#667eea" stroke-width="40" stroke-dasharray="150 503" stroke-dashoffset="0"/>
-  <circle cx="100" cy="100" r="80" fill="none" stroke="#f093fb" stroke-width="40" stroke-dasharray="100 503" stroke-dashoffset="-150"/>
-  <circle cx="100" cy="100" r="80" fill="none" stroke="#4facfe" stroke-width="40" stroke-dasharray="253 503" stroke-dashoffset="-250"/>
-</svg>
-```
+基本原则：
+- 柱状图/折线图/饼图均用 SVG 实现
+- `viewBox` 控制坐标系，外层 `style` 控制位置大小
+- 颜色与整体配色方案保持一致
 
 ### 5.4 插图获取
 
@@ -279,3 +229,33 @@ slide-editor/
 └── public/
     └── images/               # 图片资源目录
 ```
+
+## 10. CSS 动画
+
+Slide 内容是纯 HTML/CSS 渲染，支持任意 CSS 动画。在 slide HTML 中写 `<style>` 定义 keyframes，元素上加 `animation` 属性即可。
+
+### 常用动画模板
+
+```html
+<style>
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes slideLeft { from { opacity: 0; transform: translateX(-40px) } to { opacity: 1; transform: translateX(0) } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.8) } to { opacity: 1; transform: scale(1) } }
+@keyframes bounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
+@keyframes spin { to { transform: rotate(360deg) } }
+</style>
+
+<h1 style="animation: fadeIn 0.8s ease both">淡入标题</h1>
+<div style="animation: slideUp 0.6s ease 0.3s both">延迟入场</div>
+<span style="animation: bounce 1s infinite">持续弹跳</span>
+```
+
+### 技巧
+
+- `animation-delay` 实现逐步入场：`0s`, `0.2s`, `0.4s`...
+- `animation-fill-mode: both` 保持动画结束状态
+- `infinite` 循环播放，适合装饰元素
+- 演示模式自动支持（v-html 渲染，切页时动画重播）
+- ECharts 图表用 `data-echarts` 属性，演示模式也自动初始化
