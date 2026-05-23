@@ -76,6 +76,15 @@
       <button class="tb-btn action-btn" @click="$emit('flatten-children')" title="打散子元素 (Alt+F)">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h4v4H2zM8 2h4v4H8zM5 8h4v4H5z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
       </button>
+      <button class="tb-btn action-btn" @click="$emit('ungroup')" title="解组 (Alt+G)">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="2 2"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tb-btn action-btn" @click="$emit('layer-up')" title="上移图层">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 9l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+      <button class="tb-btn action-btn" @click="$emit('layer-down')" title="下移图层">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
       <button class="tb-btn tb-delete" @click="$emit('delete-el')" title="删除">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 4h8M5.5 4V3a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M4.5 4v7.5a1 1 0 001 1h3a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
@@ -85,7 +94,7 @@
 
 <script setup>
 const props = defineProps({ elStyles: Object })
-const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'flatten-children'])
+const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'flatten-children', 'ungroup', 'layer-up', 'layer-down'])
 
 function apply(prop, value) {
   emit('apply-style', { prop, value })
@@ -134,17 +143,17 @@ function toHex(color) {
 <style scoped>
 .floating-toolbar {
   position: fixed;
-  top: 56px;
+  top: 68px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 10px 18px;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
   white-space: nowrap;
   animation: floatIn 0.2s ease-out;
 }
@@ -157,8 +166,8 @@ function toHex(color) {
 .tb-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
+  gap: 6px;
+  padding: 0 10px;
   border-right: 1.5px solid #e8e8e8;
 }
 .tb-group:last-child {
@@ -175,18 +184,18 @@ function toHex(color) {
   background: transparent;
 }
 
-/* Buttons — Canva style: 36px tall, generous padding */
+/* Buttons — Canva style: 40px tall, generous padding */
 .tb-btn {
   border: none;
   background: none;
   cursor: pointer;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 600;
   color: #0d1216;
-  min-width: 36px;
-  height: 36px;
+  min-width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -215,18 +224,18 @@ function toHex(color) {
   color: #d93025;
 }
 
-/* Select — Canva style: clean, 36px height, 14px font */
+/* Select — Canva style: clean, 40px height, 15px font */
 .tb-select {
   border: 1.5px solid #dadce0;
-  border-radius: 8px;
-  padding: 6px 28px 6px 10px;
-  font-size: 14px;
+  border-radius: 10px;
+  padding: 6px 30px 6px 12px;
+  font-size: 15px;
   font-weight: 500;
   background: #fff;
   cursor: pointer;
   outline: none;
   color: #0d1216;
-  height: 36px;
+  height: 40px;
   transition: border-color 0.15s ease;
   appearance: none;
   -webkit-appearance: none;
@@ -241,22 +250,22 @@ function toHex(color) {
   border-color: #1a73e8;
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
-.font-select { width: 120px; }
+.font-select { width: 140px; }
 
 /* Input — Canva style */
 .tb-input {
   border: 1.5px solid #dadce0;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 15px;
   font-weight: 500;
   outline: none;
   color: #0d1216;
   background: #fff;
-  height: 36px;
+  height: 40px;
   transition: border-color 0.15s ease;
 }
-.size-input { width: 52px; text-align: center; }
+.size-input { width: 56px; text-align: center; }
 
 /* Range slider */
 .opacity-input, .radius-input {
@@ -319,12 +328,12 @@ function toHex(color) {
 
 /* SVG icons in buttons */
 .tb-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 .align-btn, .action-btn {
-  padding: 7px 8px;
-  min-width: 36px;
+  padding: 8px 10px;
+  min-width: 40px;
 }
 </style>

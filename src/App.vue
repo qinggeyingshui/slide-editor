@@ -76,7 +76,10 @@
         @clone-before="onCloneBefore"
         @clone-after="onCloneAfter"
         @delete-el="onDeleteEl"
-        @flatten-children="onFlattenChildren" />
+        @flatten-children="onFlattenChildren"
+        @ungroup="onUngroup"
+        @layer-up="onLayerUp"
+        @layer-down="onLayerDown" />
       <div class="canvas-wrap" ref="canvasWrapRef">
         <div class="canvas" :style="canvasTransform">
           <div class="canvas-inner" :style="innerTransform">
@@ -159,14 +162,47 @@ function onFlattenChildren() {
   const el = getSelectedDomEl()
   if (!el || !el.children.length) return
   const elRect = el.getBoundingClientRect()
-  Array.from(el.children).forEach(child => {
-    const cr = child.getBoundingClientRect()
+  const rects = Array.from(el.children).map(child => child.getBoundingClientRect())
+  Array.from(el.children).forEach((child, i) => {
     child.style.position = 'absolute'
-    child.style.left = (cr.left - elRect.left) + 'px'
-    child.style.top = (cr.top - elRect.top) + 'px'
-    child.style.width = cr.width + 'px'
+    child.style.left = (rects[i].left - elRect.left) + 'px'
+    child.style.top = (rects[i].top - elRect.top) + 'px'
+    child.style.width = rects[i].width + 'px'
   })
   el.style.position = 'absolute'
+  syncDomToSlides()
+}
+
+function onUngroup() {
+  const el = getSelectedDomEl()
+  if (!el || !el.children.length) return
+  const slideRender = el.parentElement
+  if (!slideRender) return
+  const renderRect = slideRender.getBoundingClientRect()
+  const children = Array.from(el.children)
+  children.forEach(child => {
+    const cr = child.getBoundingClientRect()
+    child.style.position = 'absolute'
+    child.style.left = (cr.left - renderRect.left) + 'px'
+    child.style.top = (cr.top - renderRect.top) + 'px'
+    child.style.width = cr.width + 'px'
+    slideRender.insertBefore(child, el)
+  })
+  el.innerHTML = ''
+  syncDomToSlides()
+}
+
+function onLayerUp() {
+  const el = getSelectedDomEl()
+  if (!el || !el.nextElementSibling) return
+  el.parentElement.insertBefore(el.nextElementSibling, el)
+  syncDomToSlides()
+}
+
+function onLayerDown() {
+  const el = getSelectedDomEl()
+  if (!el || !el.previousElementSibling) return
+  el.parentElement.insertBefore(el, el.previousElementSibling)
   syncDomToSlides()
 }
 
@@ -306,24 +342,24 @@ html, body, #app { height: 100%; }
 
 /* === Toolbar === */
 .toolbar {
-  height: 60px; background: var(--color-surface);
+  height: 72px; background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  display: flex; align-items: center; padding: 0 24px;
+  display: flex; align-items: center; padding: 0 32px;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
   position: relative; z-index: 10;
 }
 .toolbar-left .app-title {
-  font-size: 16px; font-weight: 700; color: var(--color-text-primary);
+  font-size: 18px; font-weight: 700; color: var(--color-text-primary);
   letter-spacing: -0.3px;
 }
-.toolbar-center { display: flex; gap: 8px; align-items: center; }
+.toolbar-center { display: flex; gap: 10px; align-items: center; }
 .toolbar-center button {
-  padding: 8px 16px; border: 1.5px solid #dadce0;
-  border-radius: 8px; background: #fff;
-  cursor: pointer; font-size: 14px; font-weight: 500;
-  color: #0d1216; height: 36px;
-  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border: 1.5px solid #dadce0;
+  border-radius: 10px; background: #fff;
+  cursor: pointer; font-size: 15px; font-weight: 500;
+  color: #0d1216; height: 42px;
+  display: inline-flex; align-items: center; gap: 8px;
   transition: all var(--transition-fast);
   letter-spacing: 0;
 }
