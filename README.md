@@ -45,6 +45,7 @@ npm run dev   # → http://localhost:3001
 
 把 `SKILL.md` 喂给你的 AI Agent，它就知道怎么操作了。  
 可在 `template.md` 和 `SKILL.md` 中约束风格与制作思路。
+如需要AI生图功能，需要在scripts/generate_iamge.py中配置API_KEY。
 
 ---
 
