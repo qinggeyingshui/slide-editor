@@ -506,7 +506,7 @@ html, body, #app { height: 100%; }
 .thumb-content {
   position: absolute; top: 0; left: 0;
   width: 960px; height: 540px;
-  transform: scale(0.183); transform-origin: top left;
+  transform: scale(0.152); transform-origin: top left;
   pointer-events: none;
 }
 
