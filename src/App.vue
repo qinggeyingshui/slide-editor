@@ -50,19 +50,24 @@
           保存
         </button>
         <div class="export-dropdown" style="position:relative;display:inline-block;">
+          <button @click="showImportMenu=!showImportMenu">导入 ▾</button>
+          <div v-if="showImportMenu" class="export-menu" style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:4px;z-index:100;white-space:nowrap;">
+            <button @click="$refs.importJsonInput.click()" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导入 JSON</button>
+            <button @click="$refs.importPptxInput.click()" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导入 PPTX</button>
+            <button @click="$refs.importHtmlInput.click()" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导入 HTML</button>
+          </div>
+        </div>
+        <div class="export-dropdown" style="position:relative;display:inline-block;">
           <button @click="showExportMenu=!showExportMenu">导出 ▾</button>
           <div v-if="showExportMenu" class="export-menu" style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:4px;z-index:100;white-space:nowrap;">
             <button @click="exportJSON();showExportMenu=false" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导出 JSON</button>
             <button @click="exportPPTX();showExportMenu=false" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导出 PPTX</button>
+            <button @click="exportHTML();showExportMenu=false" style="display:block;width:100%;text-align:left;border:none;padding:6px 12px;">导出 HTML</button>
           </div>
         </div>
-        <div class="export-dropdown" style="position:relative;display:inline-block;">
-          <button @click="showImportMenu=!showImportMenu">导入 ▾</button>
-          <div v-if="showImportMenu" class="export-menu" style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:4px;z-index:100;white-space:nowrap;">
-            <label style="display:block;padding:6px 12px;cursor:pointer;">导入 JSON<input type="file" accept=".json" hidden @change="(e)=>{importJSON(e);showImportMenu=false}" /></label>
-            <label style="display:block;padding:6px 12px;cursor:pointer;">导入 PPTX<input type="file" accept=".pptx" hidden @change="(e)=>{importPPTX(e);showImportMenu=false}" /></label>
-          </div>
-        </div>
+        <input type="file" ref="importJsonInput" accept=".json" hidden @change="(e)=>{importJSON(e);showImportMenu=false}" />
+        <input type="file" ref="importPptxInput" accept=".pptx" hidden @change="(e)=>{importPPTX(e);showImportMenu=false}" />
+        <input type="file" ref="importHtmlInput" accept=".html,.htm" hidden @change="(e)=>{importHTML(e);showImportMenu=false}" />
         <span v-if="saveStatus" class="save-status">{{ saveStatus }}</span>
       </div>
       <div class="toolbar-right">
@@ -89,6 +94,7 @@
         @clone-before="onCloneBefore"
         @clone-after="onCloneAfter"
         @delete-el="onDeleteEl"
+        @group="onGroup"
         @ungroup="onUngroup"
         @layer-up="onLayerUp"
         @layer-down="onLayerDown" />
@@ -187,7 +193,7 @@ onMounted(() => document.addEventListener('keydown', onPresenterKey))
 onUnmounted(() => document.removeEventListener('keydown', onPresenterKey))
 
 // Composables
-const { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX } = useFileIO(slides, currentIndex)
+const { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX, exportHTML, importHTML } = useFileIO(slides, currentIndex)
 
 const canvasWrapRef = ref(null)
 const htmlCanvasRef = ref(null)
@@ -211,6 +217,11 @@ function getCanvasApi() {
 
 const { selectedElStyles, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides } = useElementStyle(currentSlide, getCanvasApi)
 const { insertTextBox, insertLatex, handleImageUpload, handleVideoUpload } = useInsert(getCanvasApi)
+
+function onGroup() {
+  if (htmlCanvasRef.value?.groupSelected) htmlCanvasRef.value.groupSelected()
+  syncDomToSlides()
+}
 
 function onUngroup() {
   const el = getSelectedDomEl()

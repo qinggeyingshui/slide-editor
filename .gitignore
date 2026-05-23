@@ -1,2 +1,7 @@
 node_modules/
 dist/
+export.html
+public/presentation_slides.json
+scripts/pptx_parsed.json
+public/images/*
+!public/images/.gitkeep

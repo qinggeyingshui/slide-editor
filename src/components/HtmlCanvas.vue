@@ -210,6 +210,17 @@ function onKeyDown(e) {
       deselectAll()
     }
   }
+  // Select All: Ctrl+A
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault()
+    if (slideRef.value) {
+      const container = activeGroup.value || slideRef.value
+      const children = Array.from(container.children)
+      selectedEls.value = children.filter(c => c.nodeType === 1)
+      updateOutlines()
+    }
+    return
+  }
   // Group: Ctrl+G
   if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
     e.preventDefault()
@@ -575,8 +586,8 @@ function onMouseDown(e) {
     deselectAll(); return
   }
 
-  // Shift+click for multi-select
-  if (e.shiftKey) {
+  // Shift+click or Ctrl+click for multi-select
+  if (e.shiftKey || e.ctrlKey) {
     const idx = selectedEls.value.indexOf(el)
     if (idx >= 0) {
       selectedEls.value.splice(idx, 1)
@@ -585,7 +596,7 @@ function onMouseDown(e) {
     }
     updateOutlines()
     emit('select-element', el)
-    return  // Don't start drag on shift+click
+    return  // Don't start drag on shift/ctrl+click
   } else {
     // Always re-select (even if same element) to exit deep-select state
     selectElement(el)
@@ -671,8 +682,10 @@ function onDblClick(e) {
   // Safe to edit: text element (may contain inline spans)
   el.contentEditable = 'true'
   el.focus()
+  editingEl = el
   el.addEventListener('blur', () => {
     el.contentEditable = 'false'
+    editingEl = null
     pushHistory()
     saveHtml()
   }, { once: true })

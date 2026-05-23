@@ -75,7 +75,7 @@ function savePlugin() {
             const data = JSON.parse(body)
             const filePath = path.resolve(__dirname, 'src/model/presentationData.js')
             const content = `// Auto-saved by slide-editor\n` +
-              `export const presentationSlides = ${JSON.stringify(data.slides, null, 2)}\n\n` +
+              `export const slides = ${JSON.stringify(data.slides, null, 2)}\n\n` +
               `export const presentationCSS = ${JSON.stringify(data.css || '')}\n`
             fs.writeFileSync(filePath, content, 'utf-8')
             res.setHeader('Content-Type', 'application/json')

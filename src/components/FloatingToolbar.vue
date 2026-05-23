@@ -70,8 +70,11 @@
         <svg viewBox="0 0 14 14"><path d="M7 3v8M4 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
 
+      <button class="tb-btn action-btn" @click="$emit('group')" title="组合 (Ctrl+G)">
+        <svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 7l2 2M8 7l-2 2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      </button>
       <button class="tb-btn action-btn" @click="$emit('ungroup')" title="解组 (Alt+G)">
-        <svg viewBox="0 0 14 14"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="2 2"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M7 4l1.5-1.5M10 7l-1.5 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-dasharray="1.5 1.5"/></svg>
       </button>
       <button class="tb-btn action-btn" @click="$emit('layer-up')" title="上移图层">
         <svg viewBox="0 0 14 14"><path d="M3 9l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
@@ -88,7 +91,7 @@
 
 <script setup>
 const props = defineProps({ elStyles: Object })
-const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'ungroup', 'layer-up', 'layer-down'])
+const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'group', 'ungroup', 'layer-up', 'layer-down'])
 
 function apply(prop, value) {
   emit('apply-style', { prop, value })

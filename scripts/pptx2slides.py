@@ -11,6 +11,7 @@ from pathlib import Path
 PROJ = Path(__file__).parent.parent
 OUT_JS = PROJ / 'src/model/presentationData.js'
 IMG_DIR = PROJ / 'public/images'
+VID_DIR = PROJ / 'public/videos'
 
 def hex_rgba(c):
     """Convert #RRGGBBAA to rgba() string; pass through 6-char hex."""
@@ -46,6 +47,12 @@ def render_el(el, ox=0, oy=0, slide_idx=0, img_counter=[0]):
         src = save_image(el, slide_idx, img_counter)
         return f'<img src="{src}" style="{base}height:{h:.1f}px;" />'
 
+    if el.get('type') == 'video':
+        src = save_video(el, slide_idx, img_counter)
+        if src:
+            return f'<video src="{src}" style="{base}height:{h:.1f}px;" controls muted></video>'
+        return f'<div style="{base}height:{h:.1f}px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">▶ Video</div>'
+
     if el.get('type') == 'table':
         rows = el.get('data', [])
         col_ws = el.get('colWidths', [])
@@ -64,6 +71,10 @@ def render_el(el, ox=0, oy=0, slide_idx=0, img_counter=[0]):
         return tbl
 
     # Shape rendering
+    # If COM exported a replacement image for this empty shape, use it
+    if el.get('_exported_img'):
+        return f'<img src="{el["_exported_img"]}" style="{base}height:{h:.1f}px;" />'
+
     path = el.get('path')
     fill_data = el.get('fill') or {}
     content = (el.get('content') or '').replace('pt;', 'px;').replace('pt\"', 'px\"')
@@ -138,6 +149,22 @@ def save_image(el, si, counter):
     (IMG_DIR / fname).write_bytes(base64.b64decode(b64))
     return f"/images/{fname}"
 
+def save_video(el, si, counter):
+    """Save video blob (base64) to public/videos/"""
+    b64 = el.get('blob') or ''
+    if not b64: return ''
+    VID_DIR.mkdir(parents=True, exist_ok=True)
+    ext = 'mp4'
+    if ',' in b64:
+        header, b64 = b64.split(',', 1)
+        if 'webm' in header: ext = 'webm'
+        elif 'ogg' in header: ext = 'ogg'
+    fname = f"s{si+1}_{counter[0]}.{ext}"
+    counter[0] += 1
+    b64 += '=' * (-len(b64) % 4)
+    (VID_DIR / fname).write_bytes(base64.b64decode(b64))
+    return f"/videos/{fname}"
+
 def convert(json_path):
     data = json.loads(Path(json_path).read_text(encoding='utf-8'))
     slides = []
@@ -155,12 +182,12 @@ def convert(json_path):
 def parse_pptx(pptx_path):
     """调用node+pptxtojson(esbuild bundle)解析pptx为json"""
     out_json = Path(__file__).parent / 'pptx_parsed.json'
-    bundle = PROJ / '_pptxtojson_bundle.mjs'
+    bundle = Path(__file__).parent / '_pptxtojson_bundle.mjs'
     if not bundle.exists():
         esbuild = PROJ / 'node_modules/.bin/esbuild.cmd'
         entry = 'node_modules/pptxtojson/src/pptxtojson.js'
         subprocess.run([str(esbuild), entry, '--bundle', '--format=esm',
-                        '--platform=node', '--outfile=_pptxtojson_bundle.mjs'],
+                        '--platform=node', f'--outfile=scripts/_pptxtojson_bundle.mjs'],
                        cwd=str(PROJ), check=True)
     script = f"""
 import {{ parse }} from './_pptxtojson_bundle.mjs';
@@ -170,9 +197,9 @@ const r = await parse(buf);
 fs.writeFileSync('{str(out_json).replace(chr(92), "/")}', JSON.stringify(r));
 console.log('parsed');
 """
-    tmp = PROJ / '_parse_tmp.mjs'
+    tmp = Path(__file__).parent / '_parse_tmp.mjs'
     tmp.write_text(script)
-    subprocess.run(['node', str(tmp)], cwd=str(PROJ), check=True)
+    subprocess.run(['node', str(tmp)], cwd=str(Path(__file__).parent), check=True)
     tmp.unlink()
     return out_json
 
@@ -193,9 +220,61 @@ def export_bg(pptx_path):
     tmp.unlink(missing_ok=True)
     print(f"Exported {len(list(bg_dir.glob('bg_*.png')))} background PNGs")
 
+def export_missing_shapes(pptx_path, parsed_json):
+    """混合法：COM导出pptxtojson无法解析的复杂形状为PNG图片"""
+    import shutil, win32com.client
+    data = json.loads(Path(parsed_json).read_text(encoding='utf-8'))
+    shape_dir = IMG_DIR / 'shapes'
+    shape_dir.mkdir(parents=True, exist_ok=True)
+
+    # Identify empty shapes per slide: fill=none, no text content, not image/video/table
+    empty_map = {}  # {(slide_idx, shape_order): True}
+    for si, slide in enumerate(data['slides']):
+        for ei, el in enumerate(slide.get('elements', [])):
+            if el.get('type') in ('image', 'video', 'table', 'group'):
+                continue
+            fill = el.get('fill') or {}
+            has_content = bool(el.get('content') or el.get('text'))
+            if not fill.get('value') and not has_content:
+                empty_map[(si, ei)] = el
+
+    if not empty_map:
+        print("No missing shapes to export")
+        return
+
+    tmp = Path(__file__).parent / '_shapes_tmp.pptx'
+    shutil.copy2(pptx_path, tmp)
+    ppt = win32com.client.Dispatch("PowerPoint.Application")
+    pres = ppt.Presentations.Open(str(tmp.resolve()), WithWindow=False)
+
+    exported = 0
+    for (si, ei), el in empty_map.items():
+        slide = pres.Slides(si + 1)
+        if ei + 1 > slide.Shapes.Count:
+            continue
+        shape = slide.Shapes(ei + 1)
+        # Export single shape as PNG
+        fname = f"shape_s{si+1}_{ei}.png"
+        out_path = shape_dir / fname
+        try:
+            shape.Export(str(out_path), 2)  # 2 = ppShapeFormatPNG
+            el['_exported_img'] = f"/images/shapes/{fname}"
+            exported += 1
+        except Exception:
+            pass
+
+    pres.Close()
+    tmp.unlink(missing_ok=True)
+    print(f"Exported {exported} missing shapes as PNG")
+    # Write back enriched json
+    Path(parsed_json).write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
 if __name__ == '__main__':
     inp = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).parent / 'pptx_parsed.json')
     if inp.endswith('.pptx'):
         export_bg(inp)
-        inp = str(parse_pptx(inp))
-    convert(inp)
+        parsed = str(parse_pptx(inp))
+        export_missing_shapes(inp, parsed)
+        convert(parsed)
+    else:
+        convert(inp)

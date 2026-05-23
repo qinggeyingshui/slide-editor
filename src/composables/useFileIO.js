@@ -81,5 +81,39 @@ export function useFileIO(slides, currentIndex) {
     setTimeout(() => saveStatus.value = '', 3000)
   }
 
-  return { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX }
+  function exportHTML() {
+    const pages = slides.value.map((s, i) =>
+      `<div style="position:relative;width:960px;height:540px;overflow:hidden;margin:20px auto;box-shadow:0 2px 12px rgba(0,0,0,.15);">${s.innerHTML}</div>`
+    ).join('\n')
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Presentation</title><style>body{margin:0;background:#222;padding:20px 0;}</style></head><body>\n${pages}\n</body></html>`
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'presentation.html'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function importHTML(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(reader.result, 'text/html')
+      // Find slide containers: direct children of body with 960x540 size, or sections/divs with class slide
+      let containers = [...doc.querySelectorAll('body > div, body > section')]
+      if (containers.length === 0) { alert('未找到幻灯片内容'); return }
+      const newSlides = containers.map((el, i) => ({ id: Date.now() + i, innerHTML: el.innerHTML || el.outerHTML }))
+      if (newSlides.length > 0) {
+        slides.value = newSlides
+        currentIndex.value = 0
+        saveStatus.value = '✓ 已导入HTML'
+        setTimeout(() => saveStatus.value = '', 2000)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  return { saveStatus, saveToFile, exportJSON, importJSON, exportPPTX, importPPTX, exportHTML, importHTML }
 }
