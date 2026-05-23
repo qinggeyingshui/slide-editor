@@ -27,6 +27,14 @@ PPTX 仅作为**输入源**（提取配色/布局）和**分发格式**（图片
 
 ---
 
+## ⚡ 低 Token 开销
+
+幻灯片即 HTML——AI 无需学习私有 DSL 或复杂 API，直接用最熟悉的语言生成内容，天然高效。
+
+> **🚀 搭配 [GenericAgent](https://github.com/lsdefine/GenericAgent) 效果更佳，token开销更小**  
+
+---
+
 ## 🚀 快速开始
 
 ```bash
@@ -67,19 +75,6 @@ slide-editor/
 1. **上传 PPTX 模板** → AI 识别风格 → 按模板配色/布局填充新内容  
 2. **从零生成** → AI 参考 `template.md` 布局库 → 直接写 HTML
 
----
-
-## 📊 Token 开销
-
-| 操作 | 消耗 |
-|------|------|
-| 读取 SKILL.md | ~3K tokens |
-| 生成单页幻灯片 | 300–800 tokens |
-| 完整 7 页 PPT | ~5K tokens |
-
-搭配 [GenericAgent](https://github.com/lsdefine/GenericAgent) 的记忆系统可缓存技能，后续调用无需重复读取，整体消耗再降 30–50%。
-
----
 
 ## 📄 License
 
