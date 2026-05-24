@@ -191,7 +191,8 @@ def parse_pptx(pptx_path):
                         '--platform=node', f'--outfile=scripts/_pptxtojson_bundle.mjs'],
                        cwd=str(PROJ), check=True)
     # Copy to temp English name to avoid encoding issues
-    tmp_pptx = Path(__file__).parent / '_input_tmp.pptx'
+    import tempfile
+    tmp_pptx = Path(tempfile.mktemp(suffix='.pptx', prefix='_input_tmp_', dir=Path(__file__).parent))
     shutil.copy2(pptx_path, tmp_pptx)
     tmp_path_str = str(tmp_pptx.resolve()).replace(chr(92), "/")
     out_path_str = str(out_json.resolve()).replace(chr(92), "/")
@@ -212,17 +213,17 @@ console.log('parsed');
 
 def export_bg(pptx_path):
     """COM导出纯背景PNG(只保留图片Type==13)"""
-    import shutil, win32com.client
+    import shutil, tempfile, win32com.client
     bg_dir = PROJ / 'public/images/bg'
     bg_dir.mkdir(parents=True, exist_ok=True)
-    tmp = Path(__file__).parent / '_bg_tmp.pptx'
+    tmp = Path(tempfile.mktemp(suffix='.pptx', prefix='_bg_tmp_'))
     shutil.copy2(pptx_path, tmp)
     ppt = win32com.client.Dispatch("PowerPoint.Application")
     pres = ppt.Presentations.Open(str(tmp.resolve()), WithWindow=False)
     for slide in pres.Slides:
         for i in range(slide.Shapes.Count, 0, -1):
             slide.Shapes(i).Delete()
-        slide.Export(str(bg_dir / f"bg_{slide.SlideIndex}.png"), "PNG", 960, 540)
+        slide.Export(str(bg_dir / f"bg_{slide.SlideIndex}.png"), "PNG", 1920, 1080)
     pres.Close()
     tmp.unlink(missing_ok=True)
     print(f"Exported {len(list(bg_dir.glob('bg_*.png')))} background PNGs")
@@ -279,7 +280,6 @@ def export_missing_shapes(pptx_path, parsed_json):
 if __name__ == '__main__':
     inp = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).parent / 'pptx_parsed.json')
     if inp.endswith('.pptx'):
-        export_bg(inp)
         _video_map.update(extract_videos(inp))
         parsed = str(parse_pptx(inp))
         convert(parsed)

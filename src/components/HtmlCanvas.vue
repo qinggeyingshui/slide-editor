@@ -1,29 +1,31 @@
 <template>
   <div class="html-canvas-root" ref="rootRef" @mousedown.prevent="onMouseDown" @dblclick="onDblClick">
     <div class="slide-render" ref="slideRef" :style="slideStyle"></div>
-    <div v-for="(os, i) in outlineStyles" :key="i" class="selection-outline" :style="os"></div>
-    <!-- Resize handles -->
-    <!-- Marquee selection box -->
-    <div v-if="marquee" class="marquee-box" :style="marqueeStyle"></div>
-    <template v-if="resizeHandles.length">
-      <div v-for="(h, i) in resizeHandles" :key="'rh'+i"
-        class="resize-handle" :class="'rh-'+h.cursor"
-        :style="{ left: h.x+'px', top: h.y+'px', cursor: h.cursor+'-resize' }"
-        @mousedown.stop.prevent="onResizeStart($event, h.dir)">
+    <div class="overlay-layer">
+      <div v-for="(os, i) in outlineStyles" :key="i" class="selection-outline" :style="os"></div>
+      <!-- Resize handles -->
+      <!-- Marquee selection box -->
+      <div v-if="marquee" class="marquee-box" :style="marqueeStyle"></div>
+      <template v-if="resizeHandles.length">
+        <div v-for="(h, i) in resizeHandles" :key="'rh'+i"
+          class="resize-handle" :class="'rh-'+h.cursor"
+          :style="{ left: h.x+'px', top: h.y+'px', cursor: h.cursor+'-resize' }"
+          @mousedown.stop.prevent="onResizeStart($event, h.dir)">
+        </div>
+      </template>
+      <!-- Rotation handle -->
+      <div v-if="rotateHandle" class="rotate-handle"
+        :style="{ left: rotateHandle.x+'px', top: rotateHandle.y+'px' }"
+        @mousedown.stop.prevent="onRotateStart($event)">
       </div>
-    </template>
-    <!-- Rotation handle -->
-    <div v-if="rotateHandle" class="rotate-handle"
-      :style="{ left: rotateHandle.x+'px', top: rotateHandle.y+'px' }"
-      @mousedown.stop.prevent="onRotateStart($event)">
+      <!-- Alignment guides -->
+      <div v-for="(g, i) in guides" :key="'g'+i" class="align-guide" :style="g"></div>
     </div>
-    <!-- Alignment guides -->
-    <div v-for="(g, i) in guides" :key="'g'+i" class="align-guide" :style="g"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted, getCurrentInstance } from 'vue'
 import * as echarts from 'echarts'
 
 const props = defineProps({ slide: Object })
@@ -540,6 +542,9 @@ function startMarquee(e) {
 
 function onMouseDown(e) {
   let el = e.target
+  console.log('[DEBUG onMouseDown] target:', el.tagName, el.className, 'is slideRef?', el === slideRef.value, 'is rootRef?', el === rootRef.value, 'slideRef.contains?', slideRef.value?.contains(el))
+  // If click lands on overlay-layer itself, treat as if clicking slide background
+  if (el.classList?.contains('overlay-layer')) { startMarquee(e); return }
   if (el === slideRef.value || el === rootRef.value) {
     // Start marquee selection on blank area
     startMarquee(e)
@@ -708,7 +713,9 @@ defineExpose({ insertHtml, undo, redo })
 
 <style scoped>
 .html-canvas-root { position: relative; width: 960px; height: 540px; }
-.slide-render { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.slide-render { width: 100%; height: 100%; position: relative; overflow: hidden; background: #fff; }
+.overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.overlay-layer .resize-handle, .overlay-layer .rotate-handle { pointer-events: auto; }
 .selection-outline {
   position: absolute; pointer-events: none;
   border: 2px solid var(--color-primary);
