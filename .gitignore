@@ -7,3 +7,11 @@ public/images/*
 !public/images/.gitkeep
 public/videos/*
 !public/videos/.gitkeep
+__pycache__/
+*.pyc
+_input_tmp.pptx
+exported.pptx
+scripts/_*.json
+scripts/_*.pptx
+scripts/_*.mjs
+*副本*
