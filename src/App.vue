@@ -1,6 +1,6 @@
 <template>
   <!-- Presenter Mode: pure DOM overlay (bypasses Vue HMR issues) -->
-  <div v-if="presenterMode" class="fullscreen-presenter" ref="presenterRef" tabindex="0" @keydown="onPresenterKey">
+  <div v-if="presenterMode" class="fullscreen-presenter" ref="presenterRef" tabindex="0">
     <div class="slide-container">
       <div class="slide-canvas" ref="presenterCanvas"></div>
     </div>
@@ -335,6 +335,7 @@ function thumbStyle(s) { return s.slideStyle || 'background: #f0f4f8;' }
 
 // Keyboard shortcuts
 function onKeyDown(e) {
+  if (presenterMode.value) return
   if (e.target.isContentEditable) return
   if (e.key === 'F5') { e.preventDefault(); startPresentation(); return }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveToFile(); return }

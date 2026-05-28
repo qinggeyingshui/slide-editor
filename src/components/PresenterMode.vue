@@ -1,5 +1,5 @@
 <template>
-  <div class="fullscreen-presenter" @keydown="onKey" tabindex="0" ref="overlay">
+  <div class="fullscreen-presenter" tabindex="0" ref="overlay">
     <div class="slide-container">
       <div class="slide-canvas" :style="canvasStyle" ref="canvasRef"></div>
     </div>
