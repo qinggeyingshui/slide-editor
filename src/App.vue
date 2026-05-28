@@ -90,6 +90,8 @@
         </div>
       </div>
       <FloatingToolbar :elStyles="selectedElStyles"
+        :brushActive="formatBrushActive"
+        :brushLocked="formatBrushLocked"
         @apply-style="onApplyStyle"
         @clone-before="onCloneBefore"
         @clone-after="onCloneAfter"
@@ -97,13 +99,15 @@
         @group="onGroup"
         @ungroup="onUngroup"
         @layer-up="onLayerUp"
-        @layer-down="onLayerDown" />
+        @layer-down="onLayerDown"
+        @brush-activate="activateBrush"
+        @brush-lock="() => { activateBrush(); formatBrushLocked = true }" />
       <div class="canvas-wrap" ref="canvasWrapRef">
         <div class="canvas" :style="canvasTransform">
           <div class="canvas-inner" :style="innerTransform">
             <HtmlCanvas ref="htmlCanvasRef"
               :slide="currentSlide"
-              @select-element="onSelectElement"
+              @select-element="onSelectElementWrap"
               @update-html="onUpdateHtml" />
             <ShapeLayer
               :shapes="currentShapes"
@@ -215,8 +219,16 @@ function getCanvasApi() {
   return null
 }
 
-const { selectedElStyles, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides } = useElementStyle(currentSlide, getCanvasApi)
+const { selectedElStyles, formatBrushActive, formatBrushLocked, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides, activateBrush, deactivateBrush, applyBrushTo } = useElementStyle(currentSlide, getCanvasApi)
 const { insertTextBox, insertLatex, handleImageUpload, handleVideoUpload } = useInsert(getCanvasApi)
+
+// Format brush wrapper: apply brush on element select when active
+function onSelectElementWrap(el) {
+  onSelectElement(el)
+  if (formatBrushActive.value && el) {
+    applyBrushTo(el)
+  }
+}
 
 function onGroup() {
   if (htmlCanvasRef.value?.groupSelected) htmlCanvasRef.value.groupSelected()
@@ -336,6 +348,7 @@ function thumbStyle(s) { return s.slideStyle || 'background: #f0f4f8;' }
 // Keyboard shortcuts
 function onKeyDown(e) {
   if (presenterMode.value) return
+  if (e.key === 'Escape' && formatBrushActive.value) { deactivateBrush(); return }
   if (e.target.isContentEditable) return
   if (e.key === 'F5') { e.preventDefault(); startPresentation(); return }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveToFile(); return }

@@ -18,7 +18,55 @@ function isSvgShape(el) { return SVG_TAGS.includes(el?.tagName?.toLowerCase()) }
 
 export function useElementStyle(currentSlide, getCanvasApi) {
   const selectedElStyles = ref(null)
+  const formatBrushActive = ref(false)
+  const formatBrushLocked = ref(false)
   let selectedDomEl = null
+  let copiedStyles = null
+
+  // Format brush: style properties to copy/paste
+  const BRUSH_PROPS = [
+    'fontFamily','fontSize','lineHeight','fontWeight','fontStyle','textDecoration',
+    'textAlign','color','backgroundColor','opacity','borderRadius','border','boxShadow','padding'
+  ]
+
+  function copyStyleForBrush() {
+    if (!selectedDomEl) return false
+    const cs = getComputedStyle(selectedDomEl)
+    copiedStyles = {}
+    BRUSH_PROPS.forEach(p => { copiedStyles[p] = cs[p] })
+    return true
+  }
+
+  function activateBrush(locked = false) {
+    if (!copyStyleForBrush()) return
+    formatBrushActive.value = true
+    formatBrushLocked.value = locked
+  }
+
+  function deactivateBrush() {
+    formatBrushActive.value = false
+    formatBrushLocked.value = false
+  }
+
+  function applyBrushTo(el) {
+    if (!copiedStyles || !el) return
+    BRUSH_PROPS.forEach(p => {
+      if (copiedStyles[p]) el.style[p] = copiedStyles[p]
+    })
+    // Inherit to children
+    const inheritProps = ['color','backgroundColor','fontFamily','fontSize','fontWeight','textAlign','fontStyle','textDecoration']
+    inheritProps.forEach(p => {
+      if (copiedStyles[p]) {
+        el.querySelectorAll('*').forEach(child => {
+          if (child.style[p]) child.style[p] = copiedStyles[p]
+        })
+      }
+    })
+    syncDomToSlides()
+    const api = getCanvasApi()
+    if (api?.pushHistory) api.pushHistory()
+    if (!formatBrushLocked.value) deactivateBrush()
+  }
 
   function getSelectedDomEl() { return selectedDomEl }
 
@@ -100,5 +148,5 @@ export function useElementStyle(currentSlide, getCanvasApi) {
     else { selectedDomEl = null; selectedElStyles.value = null }
   }
 
-  return { selectedElStyles, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides }
+  return { selectedElStyles, formatBrushActive, formatBrushLocked, getSelectedDomEl, onSelectElement, onApplyStyle, onCloneBefore, onCloneAfter, onDeleteEl, syncDomToSlides, activateBrush, deactivateBrush, applyBrushTo }
 }

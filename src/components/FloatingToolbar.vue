@@ -61,6 +61,12 @@
       <input class="tb-input radius-input" type="range" min="0" max="50" step="1" :value="parseRadius(elStyles.borderRadius)" @input="apply('borderRadius', $event.target.value + '%')" title="圆角">
       <span class="radius-val">{{ parseRadius(elStyles.borderRadius) }}%</span>
     </div>
+    <!-- Group: Format Brush -->
+    <div class="tb-group">
+      <button class="tb-btn brush-btn" :class="{active: brushActive, locked: brushLocked}" @click="$emit('brush-activate')" @dblclick.prevent="$emit('brush-lock')" :title="brushActive ? (brushLocked ? '格式刷已锁定 (ESC退出)' : '格式刷激活中') : '格式刷 (双击锁定)'">
+        <svg viewBox="0 0 16 16"><path d="M10.5 1.5l4 4-8.5 8.5H2v-4L10.5 1.5z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8.5 3.5l4 4" stroke="currentColor" stroke-width="1.3"/><path d="M2 14h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>
     <!-- Group: Actions -->
     <div class="tb-group actions-group">
       <button class="tb-btn action-btn" @click="$emit('clone-before')" title="克隆到前面">
@@ -90,8 +96,8 @@
 </template>
 
 <script setup>
-const props = defineProps({ elStyles: Object })
-const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'group', 'ungroup', 'layer-up', 'layer-down'])
+const props = defineProps({ elStyles: Object, brushActive: Boolean, brushLocked: Boolean })
+const emit = defineEmits(['apply-style', 'clone-before', 'clone-after', 'delete-el', 'group', 'ungroup', 'layer-up', 'layer-down', 'brush-activate', 'brush-lock'])
 
 function apply(prop, value) {
   emit('apply-style', { prop, value })
@@ -346,5 +352,25 @@ function toHex(color) {
 .align-btn, .action-btn {
   padding: 8px 10px;
   min-width: 40px;
+}
+/* Format Brush */
+.brush-btn {
+  position: relative;
+  transition: all 0.2s;
+}
+.brush-btn.active {
+  background: #e3f2fd;
+  color: #1976d2;
+  box-shadow: inset 0 0 0 1.5px #1976d2;
+}
+.brush-btn.locked {
+  background: #bbdefb;
+  color: #0d47a1;
+  box-shadow: inset 0 0 0 2px #0d47a1;
+  animation: brush-pulse 1.2s infinite;
+}
+@keyframes brush-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 </style>
