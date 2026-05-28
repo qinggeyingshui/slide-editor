@@ -70,9 +70,10 @@ const slideStyle = computed(() => {
 // Inject RL objective formula card on slide 3 (detected by page number text)
 function injectFormulaCard(container) {
   if (!container) return
-  // Detect slide 3 by looking for "问题定义" in the header or "03" page indicator
-  const headerText = container.textContent || ''
-  if (!headerText.includes('问题定义') && !headerText.includes('03 /')) return
+  // Detect slide 3 by page indicator "03 /" in the bottom bar only
+  const bottomBar = container.querySelector('div[style*="bottom:0"]') || container.querySelector('div[style*="bottom: 0"]')
+  const pageText = bottomBar ? bottomBar.textContent : ''
+  if (!pageText.includes('03 /') && !pageText.includes('03/')) return
 
   // Find the left card column (the div containing the stacked cards)
   // Use flexible matching since left value may be decimal (e.g. 23.2355px)
