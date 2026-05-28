@@ -9,7 +9,7 @@
 
 HTML 是最好的演示格式——AI 最擅长生成、浏览器原生支持、表现力无上限。
 
-PPTX 仅作为**输入源**（提取配色/布局）和**分发格式**（图片式导出），编辑和演示始终在 HTML 中完成。
+PPTX 仅作为**输入源**（提取配色/布局/元素）和**分发格式**（图片式导出），编辑和演示始终在 HTML 中完成。
 
 ---
 
@@ -29,10 +29,13 @@ PPTX 仅作为**输入源**（提取配色/布局）和**分发格式**（图片
 
 ## 🎬 效果展示
 
-<video src="assets/vedio_1.mp4" controls width="600"></video>
+## 演示视频1
 
-<video src="assets/vedio_2.mp4" controls width="600"></video>
+https://github.com/user-attachments/assets/e9f59354-6cbb-471b-bc35-b9966294b51b
 
+## 演示视频2
+
+https://github.com/user-attachments/assets/37d9a85d-8bb8-4911-80c1-e0a2fba7b940
 ---
 
 ## ⚡ 低 Token 开销
@@ -54,6 +57,8 @@ npm run dev   # → http://localhost:3001
 把 `SKILL.md` 喂给你的 AI Agent，它就知道怎么操作了。  
 可在 `template.md` 和 `SKILL.md` 中约束风格与制作思路。
 如需要AI生图功能，需要在`scripts/generate_image.py`中配置API_KEY。
+对于复杂文档，建议先生成每页内容的.md文档，然后再根据文档生成slide。
+提示词tips:蓝白色系，有丰富icon图标（不允许用emoji），丰富的图表、AI插图。。。
 
 ---
 
