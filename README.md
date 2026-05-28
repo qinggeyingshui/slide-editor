@@ -27,6 +27,14 @@ PPTX 仅作为**输入源**（提取配色/布局）和**分发格式**（图片
 
 ---
 
+## 🎬 效果展示
+
+<video src="assets/vedio_1.mp4" controls width="600"></video>
+
+<video src="assets/vedio_2.mp4" controls width="600"></video>
+
+---
+
 ## ⚡ 低 Token 开销
 
 幻灯片即 HTML——AI 无需学习私有 DSL 或复杂 API，直接用最熟悉的语言生成内容，天然高效。
