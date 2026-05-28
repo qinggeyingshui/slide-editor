@@ -27,6 +27,8 @@
 <script setup>
 import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted, getCurrentInstance } from 'vue'
 import * as echarts from 'echarts'
+import { replaceEmojisWithSVG } from '../composables/useEmojiIcons.js'
+import { renderFormulasWithKaTeX } from '../composables/useFormulaRender.js'
 
 const props = defineProps({ slide: Object })
 const emit = defineEmits(['select-element', 'update-html'])
@@ -65,6 +67,66 @@ const slideStyle = computed(() => {
   return s + '; width:960px; height:540px; position:relative; overflow:hidden;'
 })
 
+// Inject RL objective formula card on slide 3 (detected by page number text)
+function injectFormulaCard(container) {
+  if (!container) return
+  // Detect slide 3 by looking for "问题定义" in the header or "03" page indicator
+  const headerText = container.textContent || ''
+  if (!headerText.includes('问题定义') && !headerText.includes('03 /')) return
+
+  // Find the left card column (the div containing the stacked cards)
+  // Use flexible matching since left value may be decimal (e.g. 23.2355px)
+  const allDivs = container.querySelectorAll('div[style*="flex-direction"]')
+  let cardCol = null
+  for (const el of allDivs) {
+    const style = el.getAttribute('style') || ''
+    if (style.includes('column') && style.includes('gap') && 
+        parseInt(el.style.width) >= 400 && parseFloat(el.style.left) < 100) {
+      cardCol = el
+      break
+    }
+  }
+  if (!cardCol) return
+
+  // Don't inject twice
+  if (cardCol.querySelector('.rl-formula-card')) return
+
+  // Create the formula card
+  const card = document.createElement('div')
+  card.className = 'rl-formula-card'
+  card.style.cssText = 'background:#ffffff;border-radius:10px;padding:14px 18px;border-left:4px solid #7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.08);margin-top:10px;'
+  
+  const title = document.createElement('div')
+  title.style.cssText = 'font-size:13px;font-weight:700;color:#0d2b6b;margin-bottom:8px;'
+  title.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-0.125em;margin-right:4px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>强化学习目标'
+
+  const formulaDiv = document.createElement('div')
+  formulaDiv.style.cssText = 'font-size:12px;color:#4b5563;line-height:2;'
+
+  // Render formulas with KaTeX if available
+  if (window.katex) {
+    const formulas = [
+      { label: '累积回报：', tex: 'G_t = \\sum_{k=0}^{\\infty} \\gamma^k R_{t+k+1}' },
+      { label: '最优策略：', tex: '\\pi^* = \\arg\\max_\\pi \\, \\mathbb{E}[G_t \\mid \\pi]' },
+      { label: '贝尔曼方程：', tex: 'Q^*(s,a) = R + \\gamma \\max_{a\'} Q^*(s\',a\')' }
+    ]
+    formulaDiv.innerHTML = formulas.map(f => {
+      const rendered = window.katex.renderToString(f.tex, { displayMode: false, throwOnError: false })
+      return `<div style="margin-bottom:2px;"><span style="color:#0d2b6b;font-weight:600;">${f.label}</span>${rendered}</div>`
+    }).join('')
+  } else {
+    formulaDiv.innerHTML = `
+      <div>累积回报：G_t = Σ γ^k · R_{t+k+1}</div>
+      <div>最优策略：π* = argmax E[G_t | π]</div>
+      <div>贝尔曼方程：Q*(s,a) = R + γ · max Q*(s',a')</div>
+    `
+  }
+
+  card.appendChild(title)
+  card.appendChild(formulaDiv)
+  cardCol.appendChild(card)
+}
+
 function renderSlide() {
   if (!slideRef.value || !props.slide) return
   slideRef.value.innerHTML = props.slide.innerHTML || ''
@@ -100,6 +162,12 @@ function renderSlide() {
         } catch(e) { /* skip invalid */ }
       })
     }
+    // Replace emoji with beautiful SVG icons
+    replaceEmojisWithSVG(slideRef.value)
+    // Render plain-text math formulas with KaTeX
+    renderFormulasWithKaTeX(slideRef.value)
+    // Inject RL objective formula card on slide 3
+    injectFormulaCard(slideRef.value)
   })
 }
 
@@ -126,6 +194,13 @@ onUnmounted(() => {
   document.removeEventListener('paste', onPaste)
   document.removeEventListener('keydown', onKeyDown)
 })
+
+function unlockFreeLayout() {
+  if (!slideRef.value) return
+  Array.from(slideRef.value.children).forEach(el => {
+    if (el.nodeType === 1) el.style.position = 'absolute'
+  })
+}
 
 // --- Undo / Redo ---
 function pushHistory() {
