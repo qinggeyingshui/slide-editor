@@ -21,9 +21,9 @@ import argparse
 import sys
 from pathlib import Path
 
-API_URL = "https://api2.tabcode.cc/openai/draw/v1/images/generations"
+API_URL = ""
 API_KEY = ""  # 请配置你的 API 密钥，或设置环境变量 OPENAI_IMAGE_API_KEY
-MODEL = "gpt-image-2"
+MODEL = ""
 
 IMAGES_DIR = Path(__file__).parent.parent / "public" / "images"
 
